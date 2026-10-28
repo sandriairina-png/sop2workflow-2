@@ -36,10 +36,12 @@ function extractSessionUser(data: any): UserType | null {
 export function SignUser({
   isScrolled,
   signButtonSize = 'sm',
+  signButtonClassName,
   userNav,
 }: {
   isScrolled?: boolean;
   signButtonSize?: 'default' | 'sm' | 'lg' | 'icon';
+  signButtonClassName?: string;
   userNav?: UserNav;
 }) {
   const t = useTranslations('common.sign');
@@ -250,6 +252,7 @@ export function SignUser({
             size={signButtonSize}
             className={cn(
               'border-foreground/10 ml-4 cursor-pointer ring-0',
+              signButtonClassName,
               isScrolled && 'lg:hidden'
             )}
             onClick={() => setIsShowSignModal(true)}

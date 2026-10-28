@@ -9,6 +9,7 @@ import { cn } from '@/shared/lib/utils';
 import { Section } from '@/shared/types/blocks/landing';
 
 import { SocialAvatars } from './social-avatars';
+import { SopWorkflowStudio } from './sop-workflow-studio';
 
 export function Hero({
   section,
@@ -17,6 +18,10 @@ export function Hero({
   section: Section;
   className?: string;
 }) {
+  if (section.product === 'sop2workflow') {
+    return <SopWorkflowStudio section={section} className={className} />;
+  }
+
   const highlightText = section.highlight_text ?? '';
   let texts = null;
   if (highlightText) {

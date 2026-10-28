@@ -94,7 +94,7 @@ export function Header({ header }: { header: HeaderType }) {
                   <Link
                     href={item.url || ''}
                     target={item.target || '_self'}
-                    className={`flex flex-row items-center gap-2 px-4 py-1.5 text-sm ${
+                    className={`flex flex-row items-center gap-2 rounded-full px-4 py-2 text-[13px] text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white ${
                       item.is_active || pathname.endsWith(item.url as string)
                         ? 'bg-muted/40 text-muted-foreground'
                         : ''
@@ -249,31 +249,39 @@ export function Header({ header }: { header: HeaderType }) {
       <header
         data-state={isMobileMenuOpen ? 'active' : 'inactive'}
         {...(isScrolled && { 'data-scrolled': true })}
-        className="has-data-[state=open]:bg-background/50 fixed inset-x-0 top-0 z-50 has-data-[state=open]:h-screen has-data-[state=open]:backdrop-blur"
+        className="linearity-header fixed inset-x-0 top-0 z-50 text-white has-data-[state=open]:h-screen has-data-[state=open]:bg-black/70 has-data-[state=open]:backdrop-blur"
       >
         <div
           className={cn(
-            'absolute inset-x-0 top-0 z-50 h-18 border-transparent ring-1 ring-transparent transition-all duration-300',
-            'in-data-scrolled:border-foreground/5 in-data-scrolled:bg-background/75 in-data-scrolled:border-b in-data-scrolled:backdrop-blur',
+            'absolute inset-x-0 top-0 z-50 h-24 border-transparent transition-[background-color,border-color,box-shadow] duration-300',
+            'in-data-scrolled:border-b in-data-scrolled:border-white/10 in-data-scrolled:bg-[#090806]/80 in-data-scrolled:shadow-[0_12px_50px_rgba(0,0,0,.28)] in-data-scrolled:backdrop-blur-xl',
             'has-data-[state=open]:ring-foreground/5 has-data-[state=open]:bg-card/75 has-data-[state=open]:h-[calc(var(--navigation-menu-viewport-height)+3.4rem)] has-data-[state=open]:border-b has-data-[state=open]:shadow-lg has-data-[state=open]:shadow-black/10 has-data-[state=open]:backdrop-blur',
-            'max-lg:in-data-[state=active]:bg-background/75 max-lg:h-14 max-lg:overflow-hidden max-lg:border-b max-lg:in-data-[state=active]:h-screen max-lg:in-data-[state=active]:backdrop-blur'
+            'max-lg:h-20 max-lg:overflow-hidden max-lg:in-data-[state=active]:h-screen max-lg:in-data-[state=active]:bg-[#090806]/95 max-lg:in-data-[state=active]:backdrop-blur-xl'
           )}
         >
-          <div className="container">
-            <div className="relative flex flex-wrap items-center justify-between lg:py-5">
-              <div className="flex justify-between gap-8 max-lg:h-14 max-lg:w-full max-lg:border-b">
+          <div className="mx-auto max-w-[1680px] px-5 md:px-10 xl:px-14">
+            <div className="relative flex flex-wrap items-center justify-between lg:py-6">
+              <div className="flex justify-between gap-8 max-lg:h-20 max-lg:w-full max-lg:items-center">
                 {/* Brand Logo */}
                 {header.brand && <BrandLogo brand={header.brand} />}
 
                 {/* Desktop Navigation Menu */}
                 {isLarge && <NavMenu />}
                 {/* Hamburger menu button for mobile navigation */}
+                {header.buttons?.[0] ? (
+                  <Link
+                    href={header.buttons[0].url || ''}
+                    className="linearity-mobile-cta ml-auto inline-flex h-10 items-center rounded-full border border-white/15 bg-white px-4 text-xs font-semibold whitespace-nowrap text-[#16100c] lg:hidden"
+                  >
+                    {header.buttons[0].title}
+                  </Link>
+                ) : null}
                 <button
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                   aria-label={
                     isMobileMenuOpen == true ? 'Close Menu' : 'Open Menu'
                   }
-                  className="relative z-20 -m-2.5 -mr-3 block cursor-pointer p-2.5 lg:hidden"
+                  className="relative z-20 ml-2 grid size-11 cursor-pointer place-items-center rounded-full border border-white/10 bg-white/[0.055] lg:hidden"
                 >
                   <Menu className="m-auto size-5 duration-200 in-data-[state=active]:scale-0 in-data-[state=active]:rotate-180 in-data-[state=active]:opacity-0" />
                   <X className="absolute inset-0 m-auto size-5 scale-0 -rotate-180 opacity-0 duration-200 in-data-[state=active]:scale-100 in-data-[state=active]:rotate-0 in-data-[state=active]:opacity-100" />
@@ -295,11 +303,11 @@ export function Header({ header }: { header: HeaderType }) {
                         href={button.url || ''}
                         target={button.target || '_self'}
                         className={cn(
-                          'focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
-                          'h-7 px-3 ring-0',
+                          'focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-full text-xs font-semibold whitespace-nowrap transition-[background-color,transform] focus-visible:ring-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
+                          'h-11 px-5 ring-0',
                           button.variant === 'outline'
                             ? 'bg-background border-primary ring-foreground/10 hover:bg-muted/50 dark:ring-foreground/15 dark:hover:bg-muted/50 border border-transparent shadow-sm ring-1 shadow-black/15 duration-200'
-                            : 'bg-primary text-primary-foreground hover:bg-primary/90 border-[0.5px] border-white/25 shadow-md ring-1 shadow-black/20 ring-(--ring-color) [--ring-color:color-mix(in_oklab,var(--color-foreground)15%,var(--color-primary))]'
+                            : 'border border-white/40 bg-white text-[#17110d] shadow-[0_10px_34px_rgba(0,0,0,.22)] hover:-translate-y-0.5 hover:bg-white/90'
                         )}
                       >
                         {button.icon && (
@@ -316,7 +324,10 @@ export function Header({ header }: { header: HeaderType }) {
                   {header.show_locale ? <LocaleSelector /> : null}
                   <div className="flex-1 md:hidden"></div>
                   {header.show_sign ? (
-                    <SignUser userNav={header.user_nav} />
+                    <SignUser
+                      userNav={header.user_nav}
+                      signButtonClassName="border-white/70 bg-white text-[#090a0d] shadow-[0_10px_30px_rgba(82,39,255,.2)] hover:bg-white/90"
+                    />
                   ) : null}
                 </div>
               </div>

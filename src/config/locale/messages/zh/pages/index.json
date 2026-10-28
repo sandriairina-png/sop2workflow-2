@@ -1,422 +1,190 @@
 {
   "page": {
-    "show_sections": [
-      "hero",
-      "logos",
-      "introduce",
-      "benefits",
-      "usage",
-      "features",
-      "stats",
-      "testimonials",
-      "faq",
-      "cta"
-    ],
+    "show_sections": ["hero", "usage", "features", "faq", "cta"],
     "sections": {
       "hero": {
-        "id": "hero",
-        "title": "一小时快速上线你的 AI 创业项目",
-        "highlight_text": "一小时",
-        "description": "ShipAny 是用于构建 AI SaaS 创业项目的 NextJS 项目模板。<br/>集成常用功能，快速上线你的产品。",
-        "announcement": {
-          "badge": "全新",
-          "title": "🎉 ShipAny 模板二已发布",
-          "url": "/pricing"
-        },
-        "tip": "🎁 前 1000 名用户特价优惠",
-        "buttons": [
-          {
-            "title": "立即开始",
-            "icon": "Zap",
-            "url": "/pricing",
-            "target": "_self",
-            "variant": "default"
-          },
-          {
-            "title": "阅读文档",
-            "icon": "BookOpenText",
-            "url": "/docs",
-            "target": "_blank",
-            "variant": "outline"
-          }
-        ],
-        "show_avatars": true,
-        "avatars_tip": "999+ 用户在使用 ShipAny 上站",
-        "show_award": false,
-        "image": {
-          "src": "/imgs/features/admin.png",
-          "alt": "hero",
-          "width": 1200,
-          "height": 800
-        },
-        "image_invert": {
-          "src": "/imgs/features/admin-dark.png",
-          "alt": "hero",
-          "width": 1200,
-          "height": 800
-        },
-        "background_image": {
-          "src": "/imgs/bg/tree.jpg",
-          "alt": "hero"
+        "block": "hero",
+        "id": "workspace",
+        "product": "sop2workflow",
+        "title": "把 ERP SOP 变成 n8n 工作流",
+        "description": "粘贴真实业务流程。AI 自动拆解触发条件、操作步骤与判断分支，生成可审阅、可导入 n8n 的工作流 JSON。",
+        "buttons": [{ "title": "查看工作方式", "url": "#how-it-works" }],
+        "workspace": {
+          "language": "zh",
+          "badge": "ERP 工作流智能引擎",
+          "hero_lead": "让",
+          "hero_join": "把",
+          "hero_target": "变成",
+          "hero_tokens": ["ERP 运营", "业务 SOP", "n8n 工作流"],
+          "primary_cta": "立即体验",
+          "secondary_cta": "生成工作流",
+          "scroll_hint": "向下探索完整流程",
+          "prompt_caption": "描述你的流程，按 ⌘ + Enter 生成",
+          "input_label": "业务 SOP",
+          "input_hint": "写清触发条件、执行步骤、判断规则和最终结果。",
+          "placeholder": "例如：每天 9:00 从 ERP 获取待发货订单，检查库存。库存充足则创建出库单并通知仓库；不足则通知采购，并在企业群中预警……",
+          "examples_label": "快速示例",
+          "example_labels": ["订单履约", "库存补货", "对账异常"],
+          "example_values": [
+            "每天 9 点从 ERP 拉取待发货订单，检查库存。库存充足则通知仓库拣货；库存不足则通知采购，并记录异常。",
+            "每天汇总低于安全库存的物料，生成补货建议。采购确认后创建采购申请，并把结果同步给仓库。",
+            "财务完成日终对账后，筛选金额不一致的单据。先通知业务复核，超过 2 小时未处理则升级给财务主管。"
+          ],
+          "trigger_label": "触发方式",
+          "trigger_manual": "手动",
+          "trigger_schedule": "定时",
+          "trigger_webhook": "Webhook",
+          "generate": "生成 n8n 工作流",
+          "generating": "正在分析 SOP",
+          "privacy": "当前内容仅在浏览器本地处理",
+          "preview": "流程预览",
+          "json": "n8n JSON",
+          "setup": "部署清单",
+          "stage_label": "流程工作台",
+          "stage_title": "从一句业务描述，到完整的工作流骨架",
+          "stage_description": "审阅节点、检查假设、查看 JSON，并把结果带到你的 n8n 环境继续配置。",
+          "empty_title": "等待你的 SOP",
+          "empty_description": "输入流程并点击生成，这里会出现节点链、配置建议与可下载的 n8n JSON。",
+          "nodes": "个节点",
+          "generated": "已生成草稿",
+          "copy": "复制 JSON",
+          "copied": "已复制",
+          "download": "下载 JSON",
+          "configuration_note": "导入 n8n 后，请配置真实的 ERP 接口、凭据和通知渠道。",
+          "checklist": "部署前检查",
+          "assumptions": "识别到的假设",
+          "tests": "建议测试",
+          "error_empty": "请先输入一段 SOP。",
+          "workspace_title": "流程草稿工作台",
+          "local_session": "本地会话",
+          "input_tag": "输入",
+          "natural_language": "自然语言",
+          "awaiting": "等待源流程文档",
+          "benefits": [
+            {
+              "id": "complete-delivery",
+              "title": "从 SOP 到交付包",
+              "description": "一次获得工作流 JSON、配置清单与测试建议。"
+            },
+            {
+              "id": "local-processing",
+              "title": "本地处理，不留业务副本",
+              "description": "SOP 在当前浏览器中处理，不保存你的业务内容。"
+            },
+            {
+              "id": "credential-safety",
+              "title": "凭据留在 n8n",
+              "description": "密钥不会进入生成结果，只在部署时安全绑定。"
+            }
+          ]
         }
-      },
-      "logos": {
-        "title": "ShipAny 使用以下技术栈构建",
-        "items": [
-          {
-            "title": "Next.js",
-            "image": {
-              "src": "/imgs/logos/nextjs.svg",
-              "alt": "Next.js"
-            }
-          },
-          {
-            "title": "React",
-            "image": {
-              "src": "/imgs/logos/react.svg",
-              "alt": "React"
-            }
-          },
-          {
-            "title": "TailwindCSS",
-            "image": {
-              "src": "/imgs/logos/tailwindcss.svg",
-              "alt": "TailwindCSS"
-            }
-          },
-          {
-            "title": "Shadcn/UI",
-            "image": {
-              "src": "/imgs/logos/shadcn.svg",
-              "alt": "Shadcn/UI"
-            }
-          },
-          {
-            "title": "Vercel",
-            "image": {
-              "src": "/imgs/logos/vercel.svg",
-              "alt": "Vercel"
-            }
-          }
-        ]
-      },
-      "introduce": {
-        "block": "features-list",
-        "id": "introduce",
-        "title": "ShipAny 是什么？",
-        "label": "产品简介",
-        "description": "ShipAny 是专为 AI SaaS 创业项目打造的 NextJS 脚手架，包括丰富模板、组件及文档。",
-        "image": {
-          "src": "/imgs/features/landing-page.png",
-          "alt": "introduce"
-        },
-        "items": [
-          {
-            "title": "开箱即用的模板",
-            "description": "从数十款生产级 AI SaaS 模板中选择，快速开启你的项目。",
-            "icon": "RiNextjsFill",
-            "image": {
-              "src": "/imgs/features/1.png",
-              "alt": "introduce"
-            }
-          },
-          {
-            "title": "基础设施搭建",
-            "description": "内置最佳实践，即刻拥有可扩展的基础设施。",
-            "icon": "RiDatabase2Line",
-            "image": {
-              "src": "/imgs/features/2.png",
-              "alt": "introduce"
-            }
-          },
-          {
-            "title": "极速部署",
-            "description": "AI SaaS 产品快速上线，助力小时级交付。",
-            "icon": "RiCloudyFill",
-            "image": {
-              "src": "/imgs/features/3.png",
-              "alt": "introduce"
-            }
-          },
-          {
-            "title": "AI 集成",
-            "description": "通过内置的 AI SDK，轻松为你的项目集成 AI 能力。",
-            "icon": "RiRobot2Line",
-            "image": {
-              "src": "/imgs/features/4.png",
-              "alt": "introduce"
-            }
-          }
-        ],
-        "className": "bg-muted"
-      },
-      "benefits": {
-        "block": "features-accordion",
-        "id": "benefits",
-        "title": "为何选择 ShipAny",
-        "label": "产品优势",
-        "description": "你获得一切 AI 创业所需——从开箱即用的模板到专业技术支持。",
-        "items": [
-          {
-            "title": "全栈解决方案",
-            "description": "基于 Next.js，集成认证、支付、AI，一站式开箱即用。",
-            "icon": "RiNextjsFill",
-            "image": {
-              "src": "/imgs/features/user-billing.png",
-              "alt": "benefits"
-            }
-          },
-          {
-            "title": "丰富模板库",
-            "description": "多样的 AI SaaS 模板，点击即用，涵盖聊天、图像生成等多场景。",
-            "icon": "RiClapperboardAiLine",
-            "image": {
-              "src": "/imgs/features/admin-settings.png",
-              "alt": "benefits"
-            }
-          },
-          {
-            "title": "专属技术指导",
-            "description": "享受专属技术支持与开发者社区，为你的成功保驾护航。",
-            "icon": "RiCodeFill",
-            "image": {
-              "src": "/imgs/features/landing-page.png",
-              "alt": "benefits"
-            }
-          }
-        ]
       },
       "usage": {
         "block": "features-step",
-        "id": "usage",
-        "title": "三步使用 ShipAny 极速上线",
-        "description": "只需三步，快速开启你的 AI SaaS 创业之路：",
-        "image": {
-          "src": "/imgs/features/1.png",
-          "alt": "usage"
-        },
-        "image_position": "left",
-        "text_align": "center",
+        "id": "how-it-works",
+        "label": "工作方式",
+        "title": "从业务语言，到可审阅的自动化草稿",
+        "description": "保留业务人员熟悉的表达，让流程设计、技术配置和上线验收在同一份结果中对齐。",
         "items": [
           {
-            "title": "获取 ShipAny",
-            "description": "一次性购买 ShipAny，查收邮件获取代码与文档。",
-            "image": {
-              "src": "/imgs/features/5.png",
-              "alt": "usage"
-            }
+            "title": "描述真实 SOP",
+            "description": "直接粘贴现有制度、操作手册或一线人员的流程描述。",
+            "tip": "自然语言输入",
+            "icon": "FileText"
           },
           {
-            "title": "启动你的项目",
-            "description": "阅读说明文档，克隆 ShipAny 代码，开始开发你的 AI SaaS 项目。",
-            "image": {
-              "src": "/imgs/features/6.png",
-              "alt": "usage"
-            }
+            "title": "识别步骤与判断",
+            "description": "解析触发器、数据动作、条件分支、审批与通知。",
+            "tip": "结构化业务逻辑",
+            "icon": "ScanSearch"
           },
           {
-            "title": "个性化定制",
-            "description": "根据需求修改模板内容和数据，配置专属 AI 能力。",
-            "image": {
-              "src": "/imgs/features/7.png",
-              "alt": "usage"
-            }
+            "title": "审阅部署清单",
+            "description": "同步给出假设、待配置项和关键测试场景。",
+            "tip": "部署前审阅",
+            "icon": "ListChecks"
           },
           {
-            "title": "部署上线",
-            "description": "简单几步将你的项目推向生产环境，立刻为客户提供服务。",
-            "image": {
-              "src": "/imgs/features/8.png",
-              "alt": "usage"
-            }
-          }
-        ],
-        "className": "bg-muted"
-      },
-      "features": {
-        "id": "features",
-        "title": "ShipAny 核心功能",
-        "description": "一切你需要的工具，助力 AI SaaS 项目高效上线。",
-        "items": [
-          {
-            "title": "Next.js 项目模板",
-            "description": "生产就绪、支持 SEO 与多语言的 Next.js 脚手架。",
-            "icon": "RiNextjsFill"
-          },
-          {
-            "title": "身份认证与支付",
-            "description": "集成谷歌 OAuth、一键登录，以及 Stripe 支付。",
-            "icon": "RiKey2Fill"
-          },
-          {
-            "title": "数据基础设施",
-            "description": "内置 Supabase，稳定可靠的数据存储。",
-            "icon": "RiDatabase2Line"
-          },
-          {
-            "title": "一键部署",
-            "description": "自动化部署到 Vercel 或 Cloudflare，极速上线。",
-            "icon": "RiCloudy2Fill"
-          },
-          {
-            "title": "商业分析",
-            "description": "集成 Google Analytics、Search Console，助力业务增长。",
-            "icon": "RiBarChart2Line"
-          },
-          {
-            "title": "AI 原生基础设施",
-            "description": "预置 AI 集成、积分系统和 API 售卖能力。",
-            "icon": "RiRobot2Line"
+            "title": "导入 n8n",
+            "description": "下载标准 JSON，在 n8n 中补齐连接信息后继续编排。",
+            "tip": "n8n 标准 JSON",
+            "icon": "Workflow"
           }
         ]
       },
-      "stats": {
-        "id": "stats",
-        "title": "用户喜爱 ShipAny",
-        "description": "因其易用且上线飞快。",
+      "features": {
+        "id": "features",
+        "label": "产品能力",
+        "title": "为 ERP 流程真正落地而设计",
+        "description": "不只画一张流程图，而是交付一份可以继续配置、验证和运行的自动化骨架。",
         "items": [
           {
-            "title": "999+",
-            "description": "位用户"
+            "title": "SOP 语义拆解",
+            "description": "内嵌面向 ERP 场景的分析提示词，提取动作、规则和异常路径。",
+            "icon": "BrainCircuit"
           },
           {
-            "title": "200+",
-            "description": "组件块"
+            "title": "n8n 标准 JSON",
+            "description": "生成符合 n8n 结构的节点与连接，可下载、复制和继续编辑。",
+            "icon": "Braces"
           },
           {
-            "title": "50+",
-            "description": "专业模板"
-          }
-        ],
-        "className": "bg-muted"
-      },
-      "testimonials": {
-        "id": "testimonials",
-        "title": "用户对 ShipAny 的评价",
-        "description": "听听开发者与创始人用 ShipAny 快速上线 AI 创业项目的故事。",
-        "items": [
-          {
-            "name": "David Chen",
-            "role": "AIWallpaper.shop 创始人",
-            "quote": "ShipAny 为我们节省了数月开发时间。2 天上线 AI 壁纸业务，一周内就收到了第一笔付费订单！",
-            "image": {
-              "src": "/imgs/avatars/1.png",
-              "alt": "david"
-            }
+            "title": "凭据安全边界",
+            "description": "不会在工作流中臆造密钥，敏感连接统一留待部署时配置。",
+            "icon": "ShieldCheck"
           },
           {
-            "name": "Rachel Kim",
-            "role": "HeyBeauty.ai CTO",
-            "quote": "内置 AI 基础设施颠覆了开发体验，无需担心架构，只需专注核心功能，极快落地。",
-            "image": {
-              "src": "/imgs/avatars/2.png",
-              "alt": "rachel"
-            }
+            "title": "多种触发模式",
+            "description": "支持手动、定时与 Webhook 三类常用流程入口。",
+            "icon": "Webhook"
           },
           {
-            "name": "Marcus Thompson",
-            "role": "独立开发者",
-            "quote": "作为独立开发者，ShipAny 满足了全部需求——认证、支付、AI 集成、美观界面，一个周末上线 SaaS！",
-            "image": {
-              "src": "/imgs/avatars/3.png",
-              "alt": "marcus"
-            }
+            "title": "部署检查清单",
+            "description": "把接口、字段映射、重试与测试要求一并交付。",
+            "icon": "ListChecks"
           },
           {
-            "name": "Sofia Garcia",
-            "role": "Melodisco CEO",
-            "quote": "模板高度可定制且生产级。我们几小时内搭建出了 AI 音乐平台，上市周期大大缩短！",
-            "image": {
-              "src": "/imgs/avatars/4.png",
-              "alt": "sofia"
-            }
-          },
-          {
-            "name": "James Wilson",
-            "role": "GPTs.works 技术负责人",
-            "quote": "ShipAny 基础设施极其稳定。我们从 0 到 1 万用户，无需关心后端维护，是最棒的 AI 创业投资。",
-            "image": {
-              "src": "/imgs/avatars/5.png",
-              "alt": "james"
-            }
-          },
-          {
-            "name": "Anna Zhang",
-            "role": "创业者",
-            "quote": "从想法到上线，仅用 3 天！ShipAny 模板和部署工具让我们极快验证 AI 商业创意。",
-            "image": {
-              "src": "/imgs/avatars/6.png",
-              "alt": "anna"
-            }
+            "title": "中英文工作区",
+            "description": "产品界面与核心说明完整支持中英文切换。",
+            "icon": "Languages"
           }
         ]
       },
       "faq": {
         "id": "faq",
-        "title": "关于 ShipAny 的常见问题",
-        "description": "还有其他问题？欢迎加入 Discord 或发邮件联系我们。",
+        "label": "常见问题",
+        "title": "上线前，你可能想确认这些",
+        "description": "关于生成结果、数据安全和 n8n 部署的简明说明。",
         "items": [
           {
-            "question": "ShipAny 是什么？怎么帮到我？",
-            "answer": "ShipAny 是专为 AI SaaS 创业设计的 NextJS 全套脚手架，内含开箱即用的模板、基础设施搭建和部署工具，让你数小时内上线 AI 产品。"
+            "title": "生成的 JSON 可以直接导入 n8n 吗？",
+            "description": "可以。系统会生成可导入的节点与连接骨架；实际 ERP 地址、账号凭据和字段映射仍需在 n8n 中按企业环境配置。"
           },
           {
-            "question": "使用 ShipAny 需要很高的技术水平吗？",
-            "answer": "有基础编程知识即可上手。ShipAny 面向开发者友好，详细文档和模板让初学者也能轻松起步，不需深厚 AI 或云计算背景。"
+            "title": "必须懂 n8n 才能使用吗？",
+            "description": "不需要先会搭流程。业务人员可以先描述 SOP 并审阅结果，技术人员再完成连接配置与上线验证。"
           },
           {
-            "question": "ShipAny 支持哪些类型的 AI SaaS 项目？",
-            "answer": "ShipAny 支持内容生成、数据分析、AI 聊天机器人、图片/内容生成器等多种主流 AI 应用场景。"
+            "title": "系统会保存 ERP 密钥吗？",
+            "description": "当前基础版在浏览器本地生成草稿，也不会要求你把账号密钥写进 SOP。正式连接应使用 n8n 的凭据管理。"
           },
           {
-            "question": "用 ShipAny 一般多久能上线？",
-            "answer": "借助 ShipAny，可在数小时内拿到产品原型并上线生产环境，预配置的一键部署大幅缩短开发周期。"
+            "title": "适合哪些 ERP 场景？",
+            "description": "订单履约、库存补货、采购审批、财务对账、主数据同步、异常通知等规则明确的流程都适合先生成自动化骨架。"
           },
           {
-            "question": "ShipAny 的基础设施包括哪些内容？",
-            "answer": "包含认证、数据库、API 集成、支付、云端部署等全栈解决方案，全部遵循业界最佳实践预配置。"
-          },
-          {
-            "question": "模板是否支持定制自己的品牌？",
-            "answer": "当然支持！所有模板均可自定义设计、功能和品牌，既保持基础架构稳定，又能满足个性扩展需求。"
+            "title": "AI 分析能力如何工作？",
+            "description": "产品已内嵌 ERP SOP 分析与 n8n 编排提示词。当前预览版提供确定性的本地生成，后续可接入模型服务增强复杂语义与分支识别。"
           }
         ]
       },
       "cta": {
         "id": "cta",
-        "title": "发布你的第一个 AI SaaS 项目",
-        "description": "从这里出发，用 ShipAny 极速交付。",
+        "title": "把下一份 SOP，变成可以运行的流程",
+        "description": "从一段真实业务描述开始，几分钟内得到可审阅、可交接、可导入 n8n 的自动化草稿。",
         "buttons": [
-          {
-            "title": "获取 ShipAny",
-            "url": "https://shipany.ai",
-            "target": "_blank",
-            "icon": "Zap"
-          },
-          {
-            "title": "阅读文档",
-            "url": "/docs",
-            "target": "_blank",
-            "variant": "outline",
-            "icon": "BookOpenText"
-          }
-        ],
-        "className": "bg-muted"
-      },
-      "subscribe": {
-        "id": "subscribe",
-        "title": "订阅我们的邮件通知",
-        "description": "获取 ShipAny 最新资讯与产品动态。",
-        "submit": {
-          "input": {
-            "placeholder": "输入邮箱"
-          },
-          "button": {
-            "title": "订阅"
-          },
-          "action": "/api/subscribe"
-        },
-        "className": "bg-muted"
+          { "title": "开始生成", "url": "#workspace", "icon": "ArrowUpRight" }
+        ]
       }
     }
   }

@@ -14,17 +14,17 @@ export function Footer({ footer }: { footer: FooterType }) {
   return (
     <footer
       id={footer.id}
-      className={`py-8 sm:py-8 ${footer.className || ''} overflow-x-hidden`}
+      className={`overflow-x-hidden border-t border-white/[0.08] bg-[#050507] py-12 text-[#f8f6f3] sm:py-16 ${footer.className || ''}`}
       // overflow-x-hidden防止-footer-撑出水平滚动条
     >
-      <div className="container space-y-8 overflow-x-hidden">
+      <div className="mx-auto max-w-[1680px] space-y-12 overflow-x-hidden px-5 md:px-10 xl:px-14">
         <div className="grid min-w-0 gap-12 md:grid-cols-5">
           <div className="min-w-0 space-y-4 break-words md:col-span-2 md:space-y-6">
             {footer.brand ? <BrandLogo brand={footer.brand} /> : null}
 
             {footer.brand?.description ? (
               <p
-                className="text-muted-foreground text-sm text-balance break-words"
+                className="max-w-sm text-sm leading-7 text-balance break-words text-white/38"
                 dangerouslySetInnerHTML={{ __html: footer.brand.description }}
               />
             ) : null}
@@ -43,7 +43,7 @@ export function Footer({ footer }: { footer: FooterType }) {
                       key={iidx}
                       href={subItem.url || ''}
                       target={subItem.target || ''}
-                      className="text-muted-foreground hover:text-primary block break-words duration-150"
+                      className="block break-words text-white/38 duration-150 hover:text-white"
                     >
                       <span className="break-words">{subItem.title || ''}</span>
                     </Link>
@@ -63,10 +63,7 @@ export function Footer({ footer }: { footer: FooterType }) {
           ) : null}
         </div>
 
-        <div
-          aria-hidden
-          className="h-px min-w-0 [background-image:linear-gradient(90deg,var(--color-foreground)_1px,transparent_1px)] bg-[length:6px_1px] bg-repeat-x opacity-25"
-        />
+        <div aria-hidden className="h-px min-w-0 bg-white/[0.08]" />
         <div className="flex min-w-0 flex-wrap justify-between gap-8">
           {footer.copyright ? (
             <p
@@ -86,7 +83,7 @@ export function Footer({ footer }: { footer: FooterType }) {
                   key={index}
                   href={item.url || ''}
                   target={item.target || ''}
-                  className="text-muted-foreground hover:text-primary block text-xs break-words underline duration-150"
+                  className="block text-xs break-words text-white/32 duration-150 hover:text-white/70"
                 >
                   {item.title || ''}
                 </Link>

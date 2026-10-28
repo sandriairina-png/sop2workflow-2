@@ -15,29 +15,46 @@ export function Features({
   return (
     <section
       id={section.id}
-      className={cn('py-16 md:py-24', section.className, className)}
+      className={cn(
+        'linearity-capability-strip bg-[#090a0d] py-24 text-[#f8f6f3] md:py-36',
+        section.className,
+        className
+      )}
     >
-      <div className={`container space-y-8 md:space-y-16`}>
+      <div className="mx-auto max-w-[1680px] space-y-14 px-5 md:px-10 xl:px-14">
         <ScrollAnimation>
-          <div className="mx-auto max-w-4xl text-center text-balance">
-            <h2 className="text-foreground mb-4 text-3xl font-semibold tracking-tight md:text-4xl">
-              {section.title}
-            </h2>
-            <p className="text-muted-foreground mb-6 md:mb-12 lg:mb-16">
-              {section.description}
-            </p>
+          <div className="grid gap-8 lg:grid-cols-[.72fr_1.28fr] lg:items-end">
+            <span className="text-[10px] tracking-[0.08em] text-[#a99cff]">
+              {section.label}
+            </span>
+            <div>
+              <h2 className="mt-5 mb-5 text-3xl font-medium tracking-[-0.04em] md:text-5xl">
+                {section.title}
+              </h2>
+              <p className="max-w-2xl text-sm leading-7 text-white/42">
+                {section.description}
+              </p>
+            </div>
           </div>
         </ScrollAnimation>
 
         <ScrollAnimation delay={0.2}>
-          <div className="relative mx-auto grid divide-x divide-y border *:p-12 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="relative mx-auto grid overflow-hidden rounded-[30px] border border-white/[0.1] bg-black/25 sm:grid-cols-2 lg:grid-cols-3">
             {section.items?.map((item, idx) => (
-              <div className="space-y-3" key={idx}>
-                <div className="flex items-center gap-2">
-                  <SmartIcon name={item.icon as string} size={24} />
-                  <h3 className="text-sm font-medium">{item.title}</h3>
+              <div
+                className="group min-h-56 space-y-6 border-r border-b border-white/[0.07] p-7 transition-[background-color] duration-200 hover:bg-white/[0.045] md:p-9"
+                key={idx}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="grid size-11 place-items-center rounded-full bg-white text-[#090a0d] transition-transform duration-200 group-hover:scale-105">
+                    <SmartIcon name={item.icon as string} size={18} />
+                  </div>
+                  <span className="text-[9px] text-white/24">0{idx + 1}</span>
                 </div>
-                <p className="text-sm">{item.description}</p>
+                <h3 className="text-sm font-medium">{item.title}</h3>
+                <p className="text-xs leading-6 text-white/38">
+                  {item.description}
+                </p>
               </div>
             ))}
           </div>

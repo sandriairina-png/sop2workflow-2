@@ -17,42 +17,47 @@ export function Faq({
   className?: string;
 }) {
   return (
-    <section id={section.id} className={`py-16 md:py-24 ${className}`}>
-      <div className={`mx-auto max-w-full px-4 md:max-w-3xl md:px-8`}>
+    <section
+      id={section.id}
+      className={`bg-[#050507] py-24 text-[#f8f6f3] md:py-36 ${className}`}
+    >
+      <div className="mx-auto grid max-w-[1400px] gap-12 px-5 md:px-8 lg:grid-cols-[.7fr_1.3fr] xl:px-12">
         <ScrollAnimation>
-          <div className="mx-auto max-w-2xl text-center text-balance">
-            <h2 className="text-foreground mb-4 text-3xl font-semibold tracking-tight md:text-4xl">
+          <div>
+            <span className="text-[10px] tracking-[0.08em] text-[#a99cff]">
+              {section.label}
+            </span>
+            <h2 className="mt-5 mb-5 text-2xl font-medium tracking-[-0.035em] md:text-4xl">
               {section.title}
             </h2>
-            <p className="text-muted-foreground mb-6 md:mb-12 lg:mb-16">
+            <p className="max-w-md text-sm leading-7 text-white/42">
               {section.description}
             </p>
           </div>
         </ScrollAnimation>
 
         <ScrollAnimation delay={0.2}>
-          <div className="mx-auto mt-12 max-w-full">
+          <div className="mx-auto max-w-full">
             <Accordion
               type="single"
               collapsible
-              className="bg-muted dark:bg-muted/50 w-full rounded-2xl p-1"
+              className="w-full overflow-hidden rounded-[28px] border border-white/[0.1] bg-white/[0.025] px-5 md:px-8"
             >
               {section.items?.map((item, idx) => (
                 <div className="group" key={idx}>
                   <AccordionItem
                     value={item.question || item.title || ''}
-                    className="data-[state=open]:bg-card dark:data-[state=open]:bg-muted peer rounded-xl border-none px-7 py-1 data-[state=open]:border-none data-[state=open]:shadow-sm"
+                    className="peer border-b border-white/[0.08] px-1 py-2 last:border-b-0"
                   >
-                    <AccordionTrigger className="cursor-pointer text-base hover:no-underline">
+                    <AccordionTrigger className="cursor-pointer py-5 text-left text-sm font-medium hover:no-underline">
                       {item.question || item.title || ''}
                     </AccordionTrigger>
                     <AccordionContent>
-                      <p className="text-base">
+                      <p className="max-w-2xl pb-4 text-xs leading-6 text-white/42">
                         {item.answer || item.description || ''}
                       </p>
                     </AccordionContent>
                   </AccordionItem>
-                  <hr className="mx-7 border-dashed group-last:hidden peer-data-[state=open]:opacity-0" />
                 </div>
               ))}
             </Accordion>

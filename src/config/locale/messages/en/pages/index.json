@@ -1,423 +1,198 @@
 {
   "page": {
-    "show_sections": [
-      "hero",
-      "logos",
-      "introduce",
-      "benefits",
-      "usage",
-      "features",
-      "stats",
-      "testimonials",
-      "faq",
-      "cta"
-    ],
+    "show_sections": ["hero", "usage", "features", "faq", "cta"],
     "sections": {
       "hero": {
-        "id": "hero",
-        "title": "Ship AI Startups in hours, not days",
-        "highlight_text": "in hours",
-        "description": "ShipAny is a NextJS boilerplate for building AI SaaS startups.<br/>Ship Fast with a variety of templates and components.",
-        "announcement": {
-          "badge": "New",
-          "title": "🎉 ShipAny Template Two",
-          "url": "/pricing"
-        },
-        "tip": "🎁 Special offer for the first 1000 users",
-        "buttons": [
-          {
-            "title": "Get Started",
-            "icon": "Zap",
-            "url": "/pricing",
-            "target": "_self",
-            "variant": "default"
-          },
-          {
-            "title": "Read Document",
-            "icon": "BookOpenText",
-            "url": "/docs",
-            "target": "_blank",
-            "variant": "outline"
-          }
-        ],
-        "show_avatars": true,
-        "avatars_tip": "999+ users are using ShipAny",
-        "show_award": false,
-        "image": {
-          "src": "/imgs/features/admin.png",
-          "alt": "hero",
-          "width": 1200,
-          "height": 800
-        },
-        "image_invert": {
-          "src": "/imgs/features/admin-dark.png",
-          "alt": "hero",
-          "width": 1200,
-          "height": 800
-        },
-        "background_image": {
-          "src": "/imgs/bg/tree.jpg",
-          "alt": "hero"
+        "block": "hero",
+        "id": "workspace",
+        "product": "sop2workflow",
+        "title": "Turn ERP SOPs into n8n workflows",
+        "description": "Paste a real business process. AI extracts triggers, actions, and decision branches, then produces reviewable JSON ready for n8n.",
+        "buttons": [{ "title": "See how it works", "url": "#how-it-works" }],
+        "workspace": {
+          "language": "en",
+          "badge": "ERP workflow intelligence",
+          "hero_lead": "Let",
+          "hero_join": "turn",
+          "hero_target": "into",
+          "hero_tokens": ["ERP operations", "business SOPs", "n8n workflows"],
+          "primary_cta": "Try it now",
+          "secondary_cta": "Generate workflow",
+          "scroll_hint": "Scroll to explore the full flow",
+          "prompt_caption": "Describe the process, then press ⌘ + Enter",
+          "input_label": "Business SOP",
+          "input_hint": "Include the trigger, operating steps, business rules, and expected outcome.",
+          "placeholder": "Example: Every day at 9:00, fetch open shipments from the ERP and check inventory. If stock is available, create a delivery order and notify the warehouse; otherwise alert procurement…",
+          "examples_label": "Quick starts",
+          "example_labels": [
+            "Order fulfillment",
+            "Inventory replenishment",
+            "Reconciliation exception"
+          ],
+          "example_values": [
+            "Every day at 9:00, fetch open shipments from the ERP and check inventory. If stock is available, notify the warehouse; otherwise alert procurement and log an exception.",
+            "Every day, collect items below safety stock and prepare replenishment suggestions. After buyer confirmation, create purchase requests and update the warehouse.",
+            "After daily reconciliation, find documents with mismatched amounts. Notify operations for review, then escalate to the finance lead if unresolved after two hours."
+          ],
+          "trigger_label": "Trigger",
+          "trigger_manual": "Manual",
+          "trigger_schedule": "Schedule",
+          "trigger_webhook": "Webhook",
+          "generate": "Generate n8n workflow",
+          "generating": "Analyzing SOP",
+          "privacy": "This preview processes content locally in your browser",
+          "preview": "Flow preview",
+          "json": "n8n JSON",
+          "setup": "Setup checklist",
+          "stage_label": "Workflow studio",
+          "stage_title": "From one process description to a complete workflow skeleton",
+          "stage_description": "Review nodes, inspect assumptions, open the JSON, and continue configuring it in your n8n environment.",
+          "empty_title": "Your workflow starts here",
+          "empty_description": "Add an SOP and generate to see the node chain, configuration notes, and downloadable n8n JSON.",
+          "nodes": "nodes",
+          "generated": "Draft generated",
+          "copy": "Copy JSON",
+          "copied": "Copied",
+          "download": "Download JSON",
+          "configuration_note": "After importing to n8n, configure your real ERP endpoints, credentials, and notification channels.",
+          "checklist": "Before deployment",
+          "assumptions": "Detected assumptions",
+          "tests": "Suggested tests",
+          "error_empty": "Add an SOP before generating.",
+          "workspace_title": "Draft workspace",
+          "local_session": "Local session",
+          "input_tag": "Input",
+          "natural_language": "Natural language",
+          "awaiting": "Awaiting source document",
+          "benefits": [
+            {
+              "id": "complete-delivery",
+              "title": "SOP to handoff package",
+              "description": "Get workflow JSON, setup checks, and test guidance in one pass."
+            },
+            {
+              "id": "local-processing",
+              "title": "Processed locally",
+              "description": "Your SOP is processed in this browser and no business copy is retained."
+            },
+            {
+              "id": "credential-safety",
+              "title": "Credentials stay in n8n",
+              "description": "Secrets stay out of generated files and are bound only during deployment."
+            }
+          ]
         }
-      },
-      "logos": {
-        "id": "logos",
-        "title": "ShipAny is built on the shoulders of giants",
-        "items": [
-          {
-            "title": "Next.js",
-            "image": {
-              "src": "/imgs/logos/nextjs.svg",
-              "alt": "Next.js"
-            }
-          },
-          {
-            "title": "React",
-            "image": {
-              "src": "/imgs/logos/react.svg",
-              "alt": "React"
-            }
-          },
-          {
-            "title": "TailwindCSS",
-            "image": {
-              "src": "/imgs/logos/tailwindcss.svg",
-              "alt": "TailwindCSS"
-            }
-          },
-          {
-            "title": "Shadcn/UI",
-            "image": {
-              "src": "/imgs/logos/shadcn.svg",
-              "alt": "Shadcn/UI"
-            }
-          },
-          {
-            "title": "Vercel",
-            "image": {
-              "src": "/imgs/logos/vercel.svg",
-              "alt": "Vercel"
-            }
-          }
-        ]
-      },
-      "introduce": {
-        "block": "features-list",
-        "id": "introduce",
-        "title": "What is ShipAny",
-        "label": "Introduce",
-        "description": "ShipAny is a NextJS boilerplate for building AI SaaS startups, including templates, components, and documentation.",
-        "image": {
-          "src": "/imgs/features/landing-page.png",
-          "alt": "introduce"
-        },
-        "items": [
-          {
-            "title": "Ready-to-use Templates",
-            "description": "Choose from dozens of production-ready AI SaaS templates to quickly start your project.",
-            "icon": "RiNextjsFill",
-            "image": {
-              "src": "/imgs/features/1.png",
-              "alt": "introduce"
-            }
-          },
-          {
-            "title": "Infrastructure Setup",
-            "description": "Get instant access to scalable infrastructure with best practices built-in.",
-            "icon": "RiDatabase2Line",
-            "image": {
-              "src": "/imgs/features/2.png",
-              "alt": "introduce"
-            }
-          },
-          {
-            "title": "Quick Deployment",
-            "description": "Deploy your AI SaaS application to production in hours, not days.",
-            "icon": "RiCloudyFill",
-            "image": {
-              "src": "/imgs/features/3.png",
-              "alt": "introduce"
-            }
-          },
-          {
-            "title": "AI Integration",
-            "description": "Integrate AI into your project with ease using our built-in AI SDK.",
-            "icon": "RiRobot2Line",
-            "image": {
-              "src": "/imgs/features/4.png",
-              "alt": "introduce"
-            }
-          }
-        ],
-        "className": "bg-muted"
-      },
-      "benefits": {
-        "block": "features-accordion",
-        "id": "benefits",
-        "title": "Why Choose ShipAny",
-        "label": "Benefits",
-        "description": "Get everything you need to launch your AI startup - from ready-to-use templates to technical support.",
-        "items": [
-          {
-            "title": "Complete Framework",
-            "description": "Built on Next.js with authentication, payments, and AI integration - everything works out of the box.",
-            "icon": "RiNextjsFill",
-            "image": {
-              "src": "/imgs/features/user-billing.png",
-              "alt": "benefits"
-            }
-          },
-          {
-            "title": "Rich Templates Library",
-            "description": "Choose from various AI SaaS templates to kickstart your project - chatbots, image generation, and more.",
-            "icon": "RiClapperboardAiLine",
-            "image": {
-              "src": "/imgs/features/admin-settings.png",
-              "alt": "benefits"
-            }
-          },
-          {
-            "title": "Technical Guidance",
-            "description": "Get dedicated support and join our developer community to ensure your successful launch.",
-            "icon": "RiCodeFill",
-            "image": {
-              "src": "/imgs/features/landing-page.png",
-              "alt": "benefits"
-            }
-          }
-        ]
       },
       "usage": {
         "block": "features-step",
-        "id": "usage",
-        "title": "How to Launch with ShipAny",
-        "description": "Get your AI SaaS startup running in three simple steps:",
-        "image": {
-          "src": "/imgs/features/1.png",
-          "alt": "usage"
-        },
-        "image_position": "left",
-        "text_align": "center",
+        "id": "how-it-works",
+        "label": "How it works",
+        "title": "From business language to a reviewable automation draft",
+        "description": "Keep the language operations teams already use while aligning process design, technical setup, and acceptance testing.",
         "items": [
           {
-            "title": "Get ShipAny",
-            "description": "Buy ShipAny with a one-time payment. Check your email for the code and documentation.",
-            "image": {
-              "src": "/imgs/features/5.png",
-              "alt": "usage"
-            }
+            "title": "Describe the real SOP",
+            "description": "Paste an existing policy, operating guide, or frontline process description.",
+            "tip": "Natural language input",
+            "icon": "FileText"
           },
           {
-            "title": "Start Your Project",
-            "description": "Read the documentation and clone the code of ShipAny. Start building your AI SaaS startup.",
-            "image": {
-              "src": "/imgs/features/6.png",
-              "alt": "usage"
-            }
+            "title": "Detect steps and decisions",
+            "description": "Extract triggers, data actions, conditions, approvals, and notifications.",
+            "tip": "Structured business logic",
+            "icon": "ScanSearch"
           },
           {
-            "title": "Customize Your Project",
-            "description": "Modify the template with your data and contents. Specific AI functionality needs.",
-            "image": {
-              "src": "/imgs/features/7.png",
-              "alt": "usage"
-            }
+            "title": "Review the setup plan",
+            "description": "Get assumptions, configuration gaps, and critical test scenarios with the flow.",
+            "tip": "Review before deployment",
+            "icon": "ListChecks"
           },
           {
-            "title": "Deploy to Production",
-            "description": "Deploy your project to production with a few steps and start serving customers immediately.",
-            "image": {
-              "src": "/imgs/features/8.png",
-              "alt": "usage"
-            }
-          }
-        ],
-        "className": "bg-muted"
-      },
-      "features": {
-        "id": "features",
-        "title": "Key Features of ShipAny",
-        "description": "Everything you need to launch your AI SaaS startup quickly and efficiently.",
-        "items": [
-          {
-            "title": "Next.js Boilerplate",
-            "description": "Production-ready Next.js templates with SEO-friendly structure and i18n support.",
-            "icon": "RiNextjsFill"
-          },
-          {
-            "title": "Authentication & Payments",
-            "description": "Integrated Google OAuth, one-tap login, and Stripe payment processing.",
-            "icon": "RiKey2Fill"
-          },
-          {
-            "title": "Data Infrastructure",
-            "description": "Built-in Supabase integration for reliable and scalable data storage.",
-            "icon": "RiDatabase2Line"
-          },
-          {
-            "title": "One-Click Deployment",
-            "description": "Seamless deployment to Vercel or Cloudflare with automated setup.",
-            "icon": "RiCloudy2Fill"
-          },
-          {
-            "title": "Business Analytics",
-            "description": "Integrated Google Analytics and Search Console for tracking growth.",
-            "icon": "RiBarChart2Line"
-          },
-          {
-            "title": "AI-Ready Infrastructure",
-            "description": "Pre-configured AI integration with built-in credits system and API sales.",
-            "icon": "RiRobot2Line"
+            "title": "Import into n8n",
+            "description": "Download standard JSON, add connections in n8n, and continue orchestrating.",
+            "tip": "n8n-ready JSON",
+            "icon": "Workflow"
           }
         ]
       },
-      "stats": {
-        "id": "stats",
-        "title": "People Love ShipAny",
-        "description": "for it's easy to use and fast to ship.",
+      "features": {
+        "id": "features",
+        "label": "Capabilities",
+        "title": "Built to put ERP workflows into production",
+        "description": "More than a diagram: a practical automation skeleton your team can configure, validate, and run.",
         "items": [
           {
-            "title": "999+",
-            "description": "Customers"
+            "title": "SOP semantic analysis",
+            "description": "Embedded ERP-focused prompts identify actions, rules, and exception paths.",
+            "icon": "BrainCircuit"
           },
           {
-            "title": "200+",
-            "description": "Blocks"
+            "title": "Standard n8n JSON",
+            "description": "Generate nodes and connections you can download, copy, and keep editing.",
+            "icon": "Braces"
           },
           {
-            "title": "50+",
-            "description": "Templates"
-          }
-        ],
-        "className": "bg-muted"
-      },
-      "testimonials": {
-        "id": "testimonials",
-        "title": "What Users Say About ShipAny",
-        "description": "Hear from developers and founders who launched their AI startups with ShipAny.",
-        "items": [
-          {
-            "name": "David Chen",
-            "role": "Founder of AIWallpaper.shop",
-            "quote": "ShipAny saved us months of development time. We launched our AI wallpaper business in just 2 days and got our first paying customer within a week!",
-            "image": {
-              "src": "/imgs/avatars/1.png",
-              "alt": "david"
-            }
+            "title": "Credential-safe by design",
+            "description": "Secrets are never invented or embedded; connections stay explicit for deployment.",
+            "icon": "ShieldCheck"
           },
           {
-            "name": "Rachel Kim",
-            "role": "CTO at HeyBeauty.ai",
-            "quote": "The pre-built AI infrastructure is a game-changer. We didn't have to worry about architecture - just focused on our AI beauty tech and went live fast.",
-            "image": {
-              "src": "/imgs/avatars/2.png",
-              "alt": "rachel"
-            }
+            "title": "Flexible triggers",
+            "description": "Start workflows manually, on a schedule, or from an incoming webhook.",
+            "icon": "Webhook"
           },
           {
-            "name": "Marcus Thompson",
-            "role": "Solo Developer",
-            "quote": "As a solo developer, ShipAny gave me everything I needed - auth, payments, AI integration, and beautiful UI. Launched my SaaS in a weekend!",
-            "image": {
-              "src": "/imgs/avatars/3.png",
-              "alt": "marcus"
-            }
+            "title": "Deployment checklist",
+            "description": "Carry endpoints, field mapping, retry rules, and test requirements into handoff.",
+            "icon": "ListChecks"
           },
           {
-            "name": "Sofia Garcia",
-            "role": "CEO of Melodisco",
-            "quote": "The templates are production-ready and highly customizable. We built our AI music platform in hours instead of months. Incredible time-to-market!",
-            "image": {
-              "src": "/imgs/avatars/4.png",
-              "alt": "sofia"
-            }
-          },
-          {
-            "name": "James Wilson",
-            "role": "Tech Lead at GPTs.works",
-            "quote": "ShipAny's infrastructure is rock-solid. We scaled from 0 to 10k users without touching the backend. Best investment for our AI startup.",
-            "image": {
-              "src": "/imgs/avatars/5.png",
-              "alt": "james"
-            }
-          },
-          {
-            "name": "Anna Zhang",
-            "role": "Startup Founder",
-            "quote": "From idea to launch in 3 days! ShipAny's templates and deployment tools made it possible to test our AI business concept incredibly fast.",
-            "image": {
-              "src": "/imgs/avatars/6.png",
-              "alt": "anna"
-            }
+            "title": "Bilingual workspace",
+            "description": "The product interface and core guidance work in both English and Chinese.",
+            "icon": "Languages"
           }
         ]
       },
       "faq": {
         "id": "faq",
-        "title": "Frequently Asked Questions About ShipAny",
-        "description": "Have another question? Contact us on Discord or by email.",
+        "label": "FAQ",
+        "title": "What teams ask before deployment",
+        "description": "Clear answers about generated workflows, data handling, and n8n setup.",
         "items": [
           {
-            "question": "What exactly is ShipAny and how does it work?",
-            "answer": "ShipAny is a comprehensive NextJS boilerplate designed specifically for building AI SaaS startups. It provides ready-to-use templates, infrastructure setup, and deployment tools that help you launch your AI business in hours instead of days."
+            "title": "Can I import the JSON directly into n8n?",
+            "description": "Yes. The generated nodes and connections form an importable skeleton. Your real ERP endpoints, credentials, and field mappings still need to be configured in n8n."
           },
           {
-            "question": "Do I need advanced technical skills to use ShipAny?",
-            "answer": "While basic programming knowledge is helpful, ShipAny is designed to be developer-friendly. Our templates and documentation make it easy to get started, even if you're not an expert in AI or cloud infrastructure."
+            "title": "Do I need to know n8n first?",
+            "description": "No. Operations teams can describe and review the SOP first, while technical owners complete connections and production validation."
           },
           {
-            "question": "What types of AI SaaS can I build with ShipAny?",
-            "answer": "ShipAny supports a wide range of AI applications, from content generation to data analysis tools. Our templates cover popular use cases like AI chatbots, content generators, image processing apps, and more."
+            "title": "Does it store ERP credentials?",
+            "description": "The current foundation generates drafts locally in your browser and never asks you to put secrets in the SOP. Production connections should use n8n credentials."
           },
           {
-            "question": "How long does it typically take to launch with ShipAny?",
-            "answer": "With ShipAny, you can have a working prototype in hours and a production-ready application in hours. Our one-click deployment and pre-configured infrastructure significantly reduce the traditional months-long development cycle."
+            "title": "Which ERP processes fit best?",
+            "description": "Order fulfillment, replenishment, purchasing approvals, reconciliation, master-data sync, and exception alerts are strong starting points."
           },
           {
-            "question": "What's included in the ShipAny infrastructure?",
-            "answer": "ShipAny provides a complete infrastructure stack including authentication, database setup, API integration, payment processing, and scalable cloud deployment. Everything is pre-configured following industry best practices."
-          },
-          {
-            "question": "Can I customize the templates to match my brand?",
-            "answer": "Absolutely! All ShipAny templates are fully customizable. You can modify the design, features, and functionality to match your brand identity and specific business requirements while maintaining the robust underlying infrastructure."
+            "title": "How does the AI analysis work?",
+            "description": "ERP SOP analysis and n8n orchestration prompts are embedded in the product. This preview uses deterministic local generation; a model service can extend complex language and branch recognition next."
           }
         ]
       },
       "cta": {
         "id": "cta",
-        "title": "Ship your first AI SaaS Startup",
-        "description": "Start from here, ship with ShipAny.",
+        "title": "Turn your next SOP into a workflow that can run",
+        "description": "Start with a real process description and get a reviewable, handoff-ready n8n automation draft in minutes.",
         "buttons": [
           {
-            "title": "Get ShipAny",
-            "url": "https://shipany.ai",
-            "target": "_blank",
-            "icon": "Zap"
-          },
-          {
-            "title": "Read Document",
-            "url": "/docs",
-            "target": "_blank",
-            "variant": "outline",
-            "icon": "BookOpenText"
+            "title": "Start generating",
+            "url": "#workspace",
+            "icon": "ArrowUpRight"
           }
-        ],
-        "className": "bg-muted"
-      },
-      "subscribe": {
-        "id": "subscribe",
-        "title": "Subscribe to our newsletter",
-        "description": "Get the latest news and updates from ShipAny.",
-        "submit": {
-          "input": {
-            "placeholder": "Enter your email"
-          },
-          "button": {
-            "title": "Subscribe"
-          },
-          "action": "/api/subscribe"
-        },
-        "className": "bg-muted"
+        ]
       }
     }
   }

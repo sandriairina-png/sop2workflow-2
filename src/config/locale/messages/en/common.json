@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "title": "ShipAny Template Two",
-    "description": "ShipAny is a NextJS boilerplate for building AI SaaS startups. Ship Fast with a variety of templates and components.",
-    "keywords": "shipany, shipany-boilerplate, shipany-template-two-demo"
+    "title": "SOP2Workflow — ERP SOP to n8n workflows",
+    "description": "Turn ERP standard operating procedures into reviewable, downloadable automation workflows ready for n8n.",
+    "keywords": "ERP SOP, n8n workflow, process automation, SOP to workflow, enterprise automation"
   },
   "sign": {
     "sign_in_title": "Sign In",

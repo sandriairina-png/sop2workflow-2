@@ -2,232 +2,87 @@
   "header": {
     "id": "header",
     "brand": {
-      "title": "ShipAny Two",
+      "title": "SOP2Workflow",
       "logo": {
-        "src": "/logo.png",
-        "alt": "ShipAny Two",
-        "width": 100,
-        "height": 100
+        "src": "/logo.svg",
+        "alt": "SOP2Workflow",
+        "width": 40,
+        "height": 40
       },
       "url": "/"
     },
     "nav": {
       "items": [
-        {
-          "title": "Features",
-          "url": "/#features",
-          "icon": "Sparkles"
-        },
-        {
-          "title": "Showcases",
-          "url": "/showcases",
-          "icon": "Box"
-        },
-        {
-          "title": "Pricing",
-          "url": "/pricing",
-          "icon": "DollarSign"
-        },
-        {
-          "title": "AI",
-          "icon": "RiRobot2Line",
-          "children": [
-            {
-              "title": "AI Image Generator",
-              "description": "Use AI to generate images",
-              "url": "/ai-image-generator",
-              "icon": "RiImage2Line"
-            },
-            {
-              "title": "AI Music Generator",
-              "description": "Use AI to generate music",
-              "url": "/ai-music-generator",
-              "icon": "RiMusic2Line"
-            },
-            {
-              "title": "AI Video Generator",
-              "description": "Use AI to generate videos",
-              "url": "/ai-video-generator",
-              "icon": "RiVideoLine"
-            },
-            {
-              "title": "AI Chatbot",
-              "description": "Chat with AI chatbot",
-              "url": "/chat",
-              "icon": "RiMessage2Line"
-            }
-          ]
-        },
-        {
-          "title": "Content",
-          "icon": "FileText",
-          "children": [
-            {
-              "title": "Blog",
-              "description": "Read Blog Posts",
-              "url": "/blog",
-              "icon": "Newspaper"
-            },
-            {
-              "title": "Updates",
-              "description": "Read Update Logs",
-              "url": "/updates",
-              "icon": "Clock"
-            },
-            {
-              "title": "Docs",
-              "description": "Read Documentation",
-              "url": "/docs",
-              "target": "_blank",
-              "icon": "BookOpenText"
-            }
-          ]
-        }
+        { "title": "Workspace", "url": "/#workspace", "icon": "Workflow" },
+        { "title": "How it works", "url": "/#how-it-works", "icon": "Route" },
+        { "title": "Capabilities", "url": "/#features", "icon": "Boxes" }
       ]
     },
-    "buttons": [],
+    "buttons": [
+      {
+        "title": "Try it now",
+        "url": "/#sop-workspace",
+        "target": "_self"
+      }
+    ],
     "user_nav": {
       "show_name": true,
-      "show_credits": true,
+      "show_credits": false,
       "show_sign_out": true,
-      "items": [
-        {
-          "title": "Billing",
-          "url": "/settings/billing",
-          "icon": "CreditCard"
-        },
-        {
-          "title": "Activity",
-          "url": "/activity",
-          "icon": "Activity"
-        }
-      ]
+      "items": []
     },
     "show_sign": true,
-    "show_theme": true,
-    "show_locale": true,
-    "topbanner": {
-      "text": "This website is a demo site for the ShipAny template. To purchase the ShipAny template, please visit the <a href='https://shipany.ai/pricing' class='text-orange-300' target='_blank'>ShipAny website</a>"
-    }
+    "show_theme": false,
+    "show_locale": true
   },
   "footer": {
     "id": "footer",
     "brand": {
-      "title": "ShipAny Two",
-      "description": "ShipAny is a NextJS boilerplate for building AI SaaS startups. Ship Fast with a variety of templates and components.",
+      "title": "SOP2Workflow",
+      "description": "Turn ERP operating procedures into reviewable automation workflows ready for n8n.",
       "logo": {
-        "src": "/logo.png",
-        "alt": "ShipAny Two",
-        "width": 1024,
-        "height": 1024
+        "src": "/logo.svg",
+        "alt": "SOP2Workflow",
+        "width": 40,
+        "height": 40
       },
       "url": "/"
     },
     "nav": {
       "items": [
         {
-          "title": "About",
+          "title": "Product",
           "children": [
+            { "title": "Workspace", "url": "/#workspace", "target": "_self" },
             {
-              "title": "Features",
-              "url": "/#features",
+              "title": "How it works",
+              "url": "/#how-it-works",
               "target": "_self"
             },
-            {
-              "title": "Showcases",
-              "url": "/showcases",
-              "target": "_self"
-            },
-            {
-              "title": "Pricing",
-              "url": "/pricing",
-              "target": "_self"
-            }
+            { "title": "Capabilities", "url": "/#features", "target": "_self" }
           ]
         },
         {
-          "title": "Resources",
+          "title": "Learn",
           "children": [
+            { "title": "FAQ", "url": "/#faq", "target": "_self" },
             {
-              "title": "Documents",
-              "url": "/docs",
-              "target": "_self"
-            },
-            {
-              "title": "Blog",
-              "url": "/blog",
-              "target": "_self"
-            },
-            {
-              "title": "Chat",
-              "url": "/chat",
-              "target": "_self"
-            }
-          ]
-        },
-        {
-          "title": "Friends",
-          "children": [
-            {
-              "title": "ShipAny",
-              "url": "https://shipany.ai",
-              "target": "_blank"
-            },
-            {
-              "title": "ThinkAny",
-              "url": "https://thinkany.ai",
-              "target": "_blank"
-            },
-            {
-              "title": "MCP.so",
-              "url": "https://mcp.so",
+              "title": "n8n documentation",
+              "url": "https://docs.n8n.io/",
               "target": "_blank"
             }
           ]
-        }
-      ]
-    },
-    "social": {
-      "items": [
-        {
-          "title": "X",
-          "icon": "RiTwitterXFill",
-          "url": "https://x.com/your-app-name",
-          "target": "_blank"
-        },
-        {
-          "title": "Github",
-          "icon": "Github",
-          "url": "https://github.com/your-app-name",
-          "target": "_blank"
-        },
-        {
-          "title": "Discord",
-          "icon": "RiDiscordFill",
-          "url": "https://discord.gg/your-app-name",
-          "target": "_blank"
-        },
-        {
-          "title": "Email",
-          "icon": "Mail",
-          "url": "mailto:support@your-domain.com",
-          "target": "_self"
         }
       ]
     },
     "agreement": {
       "items": [
-        {
-          "title": "Privacy Policy",
-          "url": "/privacy-policy"
-        },
-        {
-          "title": "Terms of Service",
-          "url": "/terms-of-service"
-        }
+        { "title": "Privacy policy", "url": "/privacy-policy" },
+        { "title": "Terms of service", "url": "/terms-of-service" }
       ]
     },
-    "show_theme": true,
+    "show_built_with": false,
+    "show_theme": false,
     "show_locale": true
   }
 }

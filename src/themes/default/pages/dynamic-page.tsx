@@ -1,4 +1,5 @@
 import { getThemeBlock } from '@/core/theme';
+import AnimatedContent from '@/shared/components/ui/animated-content';
 import type { DynamicPage as DynamicPageType } from '@/shared/types/blocks/landing';
 
 export default async function DynamicPage({
@@ -32,17 +33,32 @@ export default async function DynamicPage({
           switch (block) {
             default:
               try {
-                if (section.component) {
-                  return section.component;
+                let content = section.component;
+                if (!content) {
+                  const DynamicBlock = await getThemeBlock(block);
+                  content = (
+                    <DynamicBlock
+                      section={section}
+                      {...(data || section.data || {})}
+                    />
+                  );
                 }
 
-                const DynamicBlock = await getThemeBlock(block);
                 return (
-                  <DynamicBlock
+                  <AnimatedContent
                     key={sectionKey}
-                    section={section}
-                    {...(data || section.data || {})}
-                  />
+                    className="w-full"
+                    distance={block === 'hero' ? 28 : 64}
+                    duration={block === 'hero' ? 0.75 : 0.85}
+                    ease="power3.out"
+                    initialOpacity={0}
+                    blur={block === 'hero' ? 0 : 4}
+                    threshold={0.12}
+                    trigger={block === 'hero' ? 'mount' : 'scroll'}
+                    once
+                  >
+                    {content}
+                  </AnimatedContent>
                 );
               } catch (error) {
                 return null;

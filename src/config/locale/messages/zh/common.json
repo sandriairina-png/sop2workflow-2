@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "title": "ShipAny 模板二",
-    "description": "ShipAny 是用于构建 AI SaaS 创业项目的 NextJS 脚手架。提供丰富模板和组件，助您快速上线产品。",
-    "keywords": "shipany, shipany-boilerplate, shipany-template-two-demo"
+    "title": "SOP2Workflow — ERP SOP 转 n8n 工作流",
+    "description": "将 ERP 标准作业流程转换为可审阅、可下载并导入 n8n 的自动化工作流。",
+    "keywords": "ERP SOP, n8n 工作流, 流程自动化, SOP 转工作流, 企业自动化"
   },
   "sign": {
     "sign_in_title": "登录",
