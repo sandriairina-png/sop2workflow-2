@@ -62,6 +62,7 @@ export const SOP_EXAMPLES = [
 
 export * from './sop-workflow/graph';
 export * from './sop-workflow/compiler';
+export * from './sop-workflow/evolink';
 export * from './sop-workflow/prompt';
 export * from './sop-workflow/schema';
 

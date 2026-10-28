@@ -37,6 +37,12 @@ export const envConfigs: ConfigMap = {
   db_max_connections: process.env.DB_MAX_CONNECTIONS || '1',
   auth_url: process.env.AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || '',
   auth_secret: process.env.AUTH_SECRET ?? '', // openssl rand -base64 32
+  evolink_api_url:
+    process.env.EVOLINK_API_URL ??
+    'https://direct.evolink.ai/v1/chat/completions',
+  evolink_model: process.env.EVOLINK_MODEL ?? 'gemini-3.8-flash',
+  sop_workflow_rate_salt:
+    process.env.SOP_WORKFLOW_RATE_SALT ?? process.env.AUTH_SECRET ?? '',
   version: packageJson.version,
   locale_detect_enabled:
     process.env.NEXT_PUBLIC_LOCALE_DETECT_ENABLED ?? 'false',
