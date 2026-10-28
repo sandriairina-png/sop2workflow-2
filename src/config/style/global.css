@@ -185,6 +185,51 @@ pre {
   color-scheme: dark;
 }
 
+/* Product-aligned authentication surface */
+.sop-sign-overlay {
+  background: rgb(2 3 5 / 0.82);
+  backdrop-filter: blur(12px) saturate(85%);
+}
+
+.sop-sign-dialog {
+  isolation: isolate;
+  color-scheme: dark;
+}
+
+.sop-sign-aurora {
+  position: absolute;
+  z-index: 0;
+  top: -110px;
+  left: 50%;
+  width: 620px;
+  height: 240px;
+  pointer-events: none;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 70%, rgb(124 255 103 / 0.3), transparent 40%),
+    radial-gradient(circle at 68% 45%, rgb(82 39 255 / 0.46), transparent 44%);
+  filter: blur(34px) saturate(112%);
+  opacity: 0.82;
+  transform: translateX(-50%);
+  animation: sop-sign-aurora-drift 8s cubic-bezier(0.45, 0, 0.55, 1) infinite
+    alternate;
+}
+
+@keyframes sop-sign-aurora-drift {
+  from {
+    transform: translate3d(-54%, -4px, 0) scale(0.96);
+  }
+  to {
+    transform: translate3d(-46%, 12px, 0) scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sop-sign-aurora {
+    animation: none;
+  }
+}
+
 .linearity-aurora-stage {
   position: absolute;
   z-index: 0;

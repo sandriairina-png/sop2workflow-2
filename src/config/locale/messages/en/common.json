@@ -7,6 +7,8 @@
   "sign": {
     "sign_in_title": "Sign In",
     "sign_in_description": "Sign in to your account",
+    "modal_title": "Continue building workflows",
+    "modal_description": "Sign in to save, review, and export your n8n workflows.",
     "sign_up_title": "Sign Up",
     "sign_up_description": "Create an account",
     "email_title": "Email",

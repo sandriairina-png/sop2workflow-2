@@ -96,12 +96,17 @@ export function SocialProviders({
           key={provider.name}
           type="button"
           variant="outline"
-          className={cn('w-full gap-2')}
+          className={cn(
+            'h-12 w-full rounded-full border-white bg-white text-sm font-semibold text-[#08090d] shadow-none',
+            'transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white/92 hover:text-[#08090d]',
+            'focus-visible:border-white focus-visible:ring-white/55 disabled:translate-y-0',
+            '[&_svg]:size-[18px]'
+          )}
           disabled={loading}
           onClick={provider.onClick}
         >
           {provider.icon}
-          <h3>{provider.title}</h3>
+          <span>{provider.title}</span>
         </Button>
       ))}
     </div>

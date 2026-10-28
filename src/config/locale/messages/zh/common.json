@@ -7,6 +7,8 @@
   "sign": {
     "sign_in_title": "登录",
     "sign_in_description": "登录到您的账户",
+    "modal_title": "继续构建工作流",
+    "modal_description": "登录后保存、审阅并导出你的 n8n 工作流。",
     "sign_up_title": "注册",
     "sign_up_description": "创建一个新账户",
     "email_title": "邮箱",

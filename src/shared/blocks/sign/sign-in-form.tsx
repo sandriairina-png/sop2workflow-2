@@ -12,6 +12,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { useAppContext } from '@/shared/contexts/app';
+import { cn } from '@/shared/lib/utils';
 
 import { SocialProviders } from './social-providers';
 
@@ -36,6 +37,7 @@ export function SignInForm({
   const isEmailAuthEnabled =
     configs.email_auth_enabled !== 'false' ||
     (!isGoogleAuthEnabled && !isGithubAuthEnabled); // no social providers enabled, auto enable email auth
+  const hasSocialProviders = isGoogleAuthEnabled || isGithubAuthEnabled;
 
   if (callbackUrl) {
     if (
@@ -118,8 +120,23 @@ export function SignInForm({
   };
 
   return (
-    <div className={`w-full md:max-w-md ${className}`}>
-      <div className="grid gap-4">
+    <div className={cn('w-full', className)}>
+      <div className="grid gap-5 px-6 pb-2 md:px-8">
+        {hasSocialProviders && (
+          <SocialProviders
+            configs={configs}
+            callbackUrl={callbackUrl || '/'}
+            loading={loading}
+            setLoading={setLoading}
+          />
+        )}
+
+        {hasSocialProviders && isEmailAuthEnabled && (
+          <div className="text-center" aria-hidden="true">
+            <span className="text-xs text-white/34">{t('or')}</span>
+          </div>
+        )}
+
         {isEmailAuthEnabled && (
           <form
             className="grid gap-4"
@@ -128,13 +145,20 @@ export function SignInForm({
               void handleSignIn();
             }}
           >
-            <div className="grid gap-2">
-              <Label htmlFor="email">{t('email_title')}</Label>
+            <div className="grid gap-2.5">
+              <Label
+                htmlFor="email"
+                className="text-[13px] font-medium text-white/68"
+              >
+                {t('email_title')}
+              </Label>
               <Input
                 id="email"
                 type="email"
                 placeholder={t('email_placeholder')}
+                autoComplete="email"
                 required
+                className="h-12 rounded-[14px] border-white/[0.12] bg-white/[0.045] px-4 text-[15px] text-white shadow-none placeholder:text-white/28 focus-visible:border-white/55 focus-visible:ring-0"
                 onChange={(e) => {
                   setEmail(e.target.value);
                 }}
@@ -142,19 +166,19 @@ export function SignInForm({
               />
             </div>
 
-            <div className="grid gap-2">
-              {/* <div className="flex items-center">
-              <Label htmlFor="password">{t("password_title")}</Label>
-              <Link href="#" className="ml-auto inline-block text-sm underline">
-                Forgot your password?
-              </Link>
-            </div> */}
-
+            <div className="grid gap-2.5">
+              <Label
+                htmlFor="password"
+                className="text-[13px] font-medium text-white/68"
+              >
+                {t('password_title')}
+              </Label>
               <Input
                 id="password"
                 type="password"
                 placeholder={t('password_placeholder')}
-                autoComplete="password"
+                autoComplete="current-password"
+                className="h-12 rounded-[14px] border-white/[0.12] bg-white/[0.045] px-4 text-[15px] text-white shadow-none placeholder:text-white/28 focus-visible:border-white/55 focus-visible:ring-0"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -171,31 +195,32 @@ export function SignInForm({
             <Label htmlFor="remember">{t("remember_me_title")}</Label>
           </div> */}
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              className="mt-1 h-12 w-full rounded-full bg-white text-sm font-semibold text-[#08090d] shadow-none transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white/92 focus-visible:ring-white/55 disabled:translate-y-0"
+              disabled={loading}
+            >
               {loading ? (
-                <Loader2 size={16} className="animate-spin" />
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span className="sr-only">{t('sign_in_title')}</span>
+                </>
               ) : (
-                <p> {t('sign_in_title')} </p>
+                <span>{t('sign_in_title')}</span>
               )}
             </Button>
           </form>
         )}
-
-        <SocialProviders
-          configs={configs}
-          callbackUrl={callbackUrl || '/'}
-          loading={loading}
-          setLoading={setLoading}
-        />
       </div>
       {isEmailAuthEnabled && (
-        <div className="flex w-full justify-center border-t py-4">
-          <p className="text-center text-xs text-neutral-500">
+        <div className="flex w-full justify-center px-6 pt-4 pb-7 md:px-8 md:pb-8">
+          <p className="text-center text-sm text-white/38">
             {t('no_account')}
-            <Link href="/sign-up" className="underline">
-              <span className="cursor-pointer dark:text-white/70">
-                {t('sign_up_title')}
-              </span>
+            <Link
+              href="/sign-up"
+              className="ml-1 font-medium text-white underline decoration-white/28 underline-offset-4 transition-colors hover:decoration-white"
+            >
+              <span className="cursor-pointer">{t('sign_up_title')}</span>
             </Link>
           </p>
         </div>
