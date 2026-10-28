@@ -35,14 +35,15 @@
             "After daily reconciliation, find documents with mismatched amounts. Notify operations for review, then escalate to the finance lead if unresolved after two hours."
           ],
           "trigger_label": "Trigger",
+          "trigger_auto": "Auto detect",
           "trigger_manual": "Manual",
           "trigger_schedule": "Schedule",
           "trigger_webhook": "Webhook",
           "generate": "Generate n8n workflow",
           "generating": "Analyzing SOP",
-          "privacy": "This preview processes content locally in your browser",
+          "privacy": "SOP text is used only for this model analysis, is not written to the business database, and credentials never enter the result",
           "preview": "Flow preview",
-          "json": "n8n JSON",
+          "json": "Structured JSON",
           "setup": "Setup checklist",
           "stage_label": "Workflow studio",
           "stage_title": "From one process description to a complete workflow skeleton",
@@ -58,6 +59,14 @@
           "checklist": "Before deployment",
           "assumptions": "Detected assumptions",
           "tests": "Suggested tests",
+          "missing_information": "Missing information",
+          "risks": "Risks and mitigations",
+          "structured_json": "Editable structured workflow JSON",
+          "review_title": "Edit steps, owners, conditions, and exception handling. Revalidate after every change.",
+          "validate": "Revalidate",
+          "validated": "Schema and graph connectivity validated",
+          "review_required": "Validate the JSON before human confirmation.",
+          "review_confirm": "I reviewed branches, risks, and configuration gaps; generate the n8n file",
           "error_empty": "Add an SOP before generating.",
           "workspace_title": "Draft workspace",
           "local_session": "Local session",
@@ -72,8 +81,8 @@
             },
             {
               "id": "local-processing",
-              "title": "Processed locally",
-              "description": "Your SOP is processed in this browser and no business copy is retained."
+              "title": "Transient analysis",
+              "description": "Your SOP is used for this model request and is not written to the business database."
             },
             {
               "id": "credential-safety",

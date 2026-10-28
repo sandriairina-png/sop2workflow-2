@@ -31,14 +31,15 @@
             "财务完成日终对账后，筛选金额不一致的单据。先通知业务复核，超过 2 小时未处理则升级给财务主管。"
           ],
           "trigger_label": "触发方式",
+          "trigger_auto": "自动识别",
           "trigger_manual": "手动",
           "trigger_schedule": "定时",
           "trigger_webhook": "Webhook",
           "generate": "生成 n8n 工作流",
           "generating": "正在分析 SOP",
-          "privacy": "当前内容仅在浏览器本地处理",
+          "privacy": "SOP 仅用于本次模型分析；不会写入业务数据库，生成结果也不包含凭据",
           "preview": "流程预览",
-          "json": "n8n JSON",
+          "json": "结构 JSON",
           "setup": "部署清单",
           "stage_label": "流程工作台",
           "stage_title": "从一句业务描述，到完整的工作流骨架",
@@ -54,6 +55,14 @@
           "checklist": "部署前检查",
           "assumptions": "识别到的假设",
           "tests": "建议测试",
+          "missing_information": "待补充信息",
+          "risks": "风险与缓解措施",
+          "structured_json": "可编辑的结构化流程 JSON",
+          "review_title": "可修改步骤、负责人、条件和异常处理；修改后必须重新校验。",
+          "validate": "重新校验",
+          "validated": "结构和流程连通性校验通过",
+          "review_required": "请先校验 JSON，再进行人工确认。",
+          "review_confirm": "我已审阅分支、风险与待配置项，同意生成 n8n 文件",
           "error_empty": "请先输入一段 SOP。",
           "workspace_title": "流程草稿工作台",
           "local_session": "本地会话",
@@ -68,8 +77,8 @@
             },
             {
               "id": "local-processing",
-              "title": "本地处理，不留业务副本",
-              "description": "SOP 在当前浏览器中处理，不保存你的业务内容。"
+              "title": "临时分析，不留业务副本",
+              "description": "SOP 仅用于本次模型分析，不写入业务数据库。"
             },
             {
               "id": "credential-safety",

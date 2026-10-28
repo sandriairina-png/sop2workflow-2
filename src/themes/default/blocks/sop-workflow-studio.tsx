@@ -8,6 +8,7 @@ import {
   Clipboard,
   Clock3,
   Download,
+  FileCheck2,
   FileInput,
   GitBranch,
   LoaderCircle,
@@ -25,24 +26,34 @@ import {
 import Aurora from '@/shared/components/ui/aurora';
 import StarBorder from '@/shared/components/ui/star-border';
 import {
-  generateSopWorkflow,
+  compileN8nWorkflow,
   SOP_EXAMPLES,
-  SopWorkflowResult,
-  TriggerMode,
-  WorkflowStepKind,
+  SopAnalysis,
+  SopAnalysisResponse,
+  TriggerHint,
 } from '@/shared/lib/sop-workflow';
 import { cn } from '@/shared/lib/utils';
 import { Section } from '@/shared/types/blocks/landing';
 
+import {
+  buildWorkflowGraphRows,
+  validateAnalysisDraft,
+} from './sop-workflow-studio-model';
 import studioStyles from './sop-workflow-studio.module.css';
 
-const nodeIcons: Record<WorkflowStepKind, typeof Play> = {
-  trigger: Play,
-  verify: ShieldCheck,
+const nodeIcons: Record<
+  SopAnalysis['steps'][number]['operation'],
+  typeof Play
+> = {
+  read: FileInput,
+  transform: RefreshCw,
+  write: FileCheck2,
   approve: CheckCircle2,
-  sync: RefreshCw,
   notify: Send,
-  action: GitBranch,
+  wait: Clock3,
+  condition: GitBranch,
+  merge: Route,
+  end: Check,
 };
 
 type StudioCopy = {
@@ -63,6 +74,7 @@ type StudioCopy = {
   example_labels?: string[];
   example_values?: string[];
   trigger_label?: string;
+  trigger_auto?: string;
   trigger_manual?: string;
   trigger_schedule?: string;
   trigger_webhook?: string;
@@ -89,6 +101,14 @@ type StudioCopy = {
   error_empty?: string;
   local_session?: string;
   awaiting?: string;
+  validate?: string;
+  validated?: string;
+  review_title?: string;
+  review_confirm?: string;
+  review_required?: string;
+  structured_json?: string;
+  missing_information?: string;
+  risks?: string;
   benefits?: Array<{
     id: string;
     title: string;
@@ -108,16 +128,29 @@ export function SopWorkflowStudio({
   const workspaceRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const [sop, setSop] = useState('');
-  const [mode, setMode] = useState<TriggerMode>('manual');
-  const [result, setResult] = useState<SopWorkflowResult | null>(null);
+  const [mode, setMode] = useState<TriggerHint>('auto');
+  const [result, setResult] = useState<SopAnalysisResponse | null>(null);
+  const [analysisDraft, setAnalysisDraft] = useState('');
+  const [validatedAnalysis, setValidatedAnalysis] =
+    useState<SopAnalysis | null>(null);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  const [validationMessage, setValidationMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'flow' | 'json' | 'setup'>('flow');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
 
+  const workflow = useMemo(
+    () => (validatedAnalysis ? compileN8nWorkflow(validatedAnalysis) : null),
+    [validatedAnalysis]
+  );
   const json = useMemo(
-    () => (result ? JSON.stringify(result.workflow, null, 2) : ''),
-    [result]
+    () => (workflow ? JSON.stringify(workflow, null, 2) : ''),
+    [workflow]
+  );
+  const graphRows = useMemo(
+    () => (validatedAnalysis ? buildWorkflowGraphRows(validatedAnalysis) : []),
+    [validatedAnalysis]
   );
   const examples = copy.example_values?.length
     ? copy.example_values
@@ -140,7 +173,7 @@ export function SopWorkflowStudio({
     );
   }
 
-  function generate() {
+  async function generate() {
     if (!sop.trim()) {
       setError(copy.error_empty || 'Add an SOP before generating.');
       textareaRef.current?.focus();
@@ -149,36 +182,68 @@ export function SopWorkflowStudio({
 
     setError('');
     setBusy(true);
-    window.setTimeout(() => {
-      try {
-        setResult(generateSopWorkflow(sop, mode, copy.language || 'en'));
-        setActiveTab('flow');
-        window.setTimeout(
-          () =>
-            resultRef.current?.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start',
-            }),
-          80
-        );
-      } catch (reason) {
-        setError(
-          reason instanceof Error ? reason.message : 'Unable to generate.'
-        );
-      } finally {
-        setBusy(false);
+    setReviewConfirmed(false);
+    setValidationMessage('');
+    try {
+      const response = await fetch('/api/sop-workflow/analyze', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          sop: sop.trim(),
+          locale: copy.language || 'en',
+          triggerHint: mode,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Unable to analyze this SOP.');
       }
-    }, 560);
+      const next = payload as SopAnalysisResponse;
+      setResult(next);
+      setValidatedAnalysis(next.analysis);
+      setAnalysisDraft(JSON.stringify(next.analysis, null, 2));
+      setValidationMessage(copy.validated || 'Structure validated');
+      setActiveTab('flow');
+      window.setTimeout(
+        () =>
+          resultRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          }),
+        80
+      );
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : 'Unable to generate.'
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function validateDraft() {
+    try {
+      const analysis = validateAnalysisDraft(analysisDraft);
+      setValidatedAnalysis(analysis);
+      setValidationMessage(copy.validated || 'Structure validated');
+      setReviewConfirmed(false);
+      setError('');
+    } catch (reason) {
+      setValidatedAnalysis(null);
+      setReviewConfirmed(false);
+      setValidationMessage('');
+      setError(reason instanceof Error ? reason.message : 'Invalid JSON');
+    }
   }
 
   async function copyJson() {
-    if (!json) return;
+    if (!json || !reviewConfirmed) return;
     await navigator.clipboard.writeText(json);
     setCopied(true);
   }
 
   function downloadJson() {
-    if (!json) return;
+    if (!json || !reviewConfirmed) return;
     const url = URL.createObjectURL(
       new Blob([json], { type: 'application/json;charset=utf-8' })
     );
@@ -190,13 +255,13 @@ export function SopWorkflowStudio({
   }
 
   const triggerOptions: Array<{
-    value: TriggerMode;
+    value: TriggerHint;
     label: string;
     icon: typeof MousePointer2;
   }> = [
     {
-      value: 'manual',
-      label: copy.trigger_manual || 'Manual',
+      value: 'auto',
+      label: copy.trigger_auto || 'Auto detect',
       icon: MousePointer2,
     },
     {
@@ -212,22 +277,36 @@ export function SopWorkflowStudio({
   ];
   const benefitIcons = [CheckCircle2, Workflow, ShieldCheck];
 
-  const setupSections = result
+  const setupSections = validatedAnalysis
     ? [
         {
           title: copy.checklist || 'Deployment checklist',
-          items: result.checklist,
+          items: validatedAnalysis.deploymentChecklist,
           icon: Zap,
         },
         {
           title: copy.assumptions || 'Assumptions',
-          items: result.assumptions,
+          items: validatedAnalysis.assumptions,
           icon: GitBranch,
         },
         {
           title: copy.tests || 'Validation plan',
-          items: result.tests,
+          items: validatedAnalysis.tests.map(
+            (item) => `${item.name}: ${item.expected}`
+          ),
           icon: CheckCircle2,
+        },
+        {
+          title: copy.missing_information || 'Missing information',
+          items: validatedAnalysis.missingInformation,
+          icon: FileInput,
+        },
+        {
+          title: copy.risks || 'Risks and mitigations',
+          items: validatedAnalysis.risks.map(
+            (item) => `[${item.level}] ${item.title}: ${item.mitigation}`
+          ),
+          icon: ShieldCheck,
         },
       ]
     : [];
@@ -491,7 +570,7 @@ export function SopWorkflowStudio({
               ))}
               <button
                 type="button"
-                disabled={!result}
+                disabled={!json || !reviewConfirmed}
                 onClick={copyJson}
                 className="hidden rounded-full border border-white/10 p-2 text-white/45 transition hover:text-white disabled:opacity-25 sm:block"
                 aria-label={copy.copy || 'Copy JSON'}
@@ -504,7 +583,7 @@ export function SopWorkflowStudio({
               </button>
               <button
                 type="button"
-                disabled={!result}
+                disabled={!json || !reviewConfirmed}
                 onClick={downloadJson}
                 className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-[10px] text-white/48 transition hover:bg-white/[0.05] hover:text-white disabled:opacity-25"
               >
@@ -546,19 +625,19 @@ export function SopWorkflowStudio({
                       {copy.generated}
                     </div>
                     <h3 className="mt-3 text-xl font-semibold tracking-[-0.025em] md:text-3xl">
-                      {result.title}
+                      {validatedAnalysis?.title}
                     </h3>
                     <p className="mt-2 text-xs text-white/40">
-                      {result.summary}
+                      {validatedAnalysis?.summary}
                     </p>
                   </div>
                   <span className="rounded-full border border-white/10 bg-black/20 px-4 py-2 text-[10px] text-white/45">
-                    {result.steps.length} {copy.nodes}
+                    {validatedAnalysis?.steps.length} {copy.nodes}
                   </span>
                 </div>
                 <div className="mx-auto max-w-4xl">
-                  {result.steps.map((step, index) => {
-                    const Icon = nodeIcons[step.kind];
+                  {graphRows.map(({ step, edges }, index) => {
+                    const Icon = nodeIcons[step.operation];
                     return (
                       <div
                         key={step.id}
@@ -569,20 +648,47 @@ export function SopWorkflowStudio({
                           <span className="z-10 grid size-10 place-items-center rounded-xl border border-white/14 bg-[#15161c] text-white">
                             <Icon className="size-4" />
                           </span>
-                          {index !== result.steps.length - 1 ? (
+                          {index !== graphRows.length - 1 ? (
                             <span className="linearity-flow-line min-h-12 w-px flex-1 bg-white/10" />
                           ) : null}
                         </div>
                         <div className="mb-3 min-w-0 flex-1 rounded-2xl border border-white/[0.08] bg-black/20 p-4 backdrop-blur-xl transition hover:border-white/15 md:p-5">
                           <div className="text-[9px] tracking-[0.12em] text-white/30 uppercase">
-                            {step.kind} · {String(index).padStart(2, '0')}
+                            {step.operation} · {String(index).padStart(2, '0')}
                           </div>
                           <h4 className="mt-2 text-sm font-medium">
                             {step.title}
                           </h4>
                           <p className="mt-1.5 text-[11px] leading-5 text-white/38">
-                            {step.detail}
+                            {step.description}
                           </p>
+                          {step.ownerActorId ? (
+                            <div className="mt-3 text-[10px] text-white/35">
+                              Owner · {step.ownerActorId}
+                            </div>
+                          ) : null}
+                          {edges.length ? (
+                            <div className="mt-4 flex flex-wrap gap-2 border-t border-white/[0.08] pt-3">
+                              {edges.map((edge) => (
+                                <span
+                                  key={`${step.id}-${edge.targetStepId}-${edge.label}`}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-[#a99cff]/25 bg-[#a99cff]/[0.08] px-2.5 py-1 text-[10px] text-[#d5d0ff]"
+                                >
+                                  <GitBranch className="size-3" />
+                                  {edge.label} → {edge.targetStepId}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                          {step.errorHandling.length ? (
+                            <div className="mt-3 rounded-xl border border-[#ff9f9f]/20 bg-[#ff9f9f]/[0.05] px-3 py-2 text-[10px] leading-5 text-[#ffc5c5]">
+                              {step.errorHandling.map((item) => (
+                                <div key={`${step.id}-${item.scenario}`}>
+                                  {item.scenario}: {item.action}
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     );
@@ -595,12 +701,65 @@ export function SopWorkflowStudio({
                   <ShieldCheck className="size-4 shrink-0" />
                   {copy.configuration_note}
                 </div>
-                <pre className="max-h-[560px] overflow-auto rounded-2xl border border-white/[0.08] bg-black/35 p-5 font-mono text-[11px] leading-6 text-[#bbb1aa]">
-                  <code>{json}</code>
-                </pre>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-medium">
+                      {copy.structured_json || 'Structured workflow JSON'}
+                    </div>
+                    <div className="mt-1 text-[10px] text-white/38">
+                      {copy.review_title ||
+                        'Edit assumptions and node details, then validate again.'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={validateDraft}
+                    className="rounded-full border border-white/15 bg-white px-4 py-2 text-[11px] font-medium text-black transition hover:bg-white/85"
+                  >
+                    {copy.validate || 'Validate changes'}
+                  </button>
+                </div>
+                <textarea
+                  value={analysisDraft}
+                  spellCheck={false}
+                  onChange={(event) => {
+                    setAnalysisDraft(event.target.value);
+                    setValidatedAnalysis(null);
+                    setReviewConfirmed(false);
+                    setValidationMessage('');
+                    setError('');
+                  }}
+                  className="min-h-[440px] w-full resize-y rounded-2xl border border-white/[0.08] bg-black/35 p-5 font-mono text-[11px] leading-6 text-[#d8d3cf] transition outline-none focus:border-white/20"
+                  aria-label={
+                    copy.structured_json || 'Structured workflow JSON'
+                  }
+                />
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3">
+                  <span className="inline-flex items-center gap-2 text-[11px] text-[#9ee792]">
+                    {validationMessage ? (
+                      <CheckCircle2 className="size-4" />
+                    ) : null}
+                    {validationMessage ||
+                      copy.review_required ||
+                      'Validate JSON before confirming.'}
+                  </span>
+                  <label className="inline-flex items-center gap-2 text-[11px] text-white/60">
+                    <input
+                      type="checkbox"
+                      checked={reviewConfirmed}
+                      disabled={!validatedAnalysis}
+                      onChange={(event) =>
+                        setReviewConfirmed(event.target.checked)
+                      }
+                      className="size-4 accent-white"
+                    />
+                    {copy.review_confirm ||
+                      'I reviewed the branches, risks, and required configuration.'}
+                  </label>
+                </div>
               </div>
             ) : (
-              <div className="grid gap-8 p-5 md:grid-cols-3 md:p-10">
+              <div className="grid gap-8 p-5 md:grid-cols-2 md:p-10 xl:grid-cols-3">
                 {setupSections.map(({ title, items, icon: Icon }) => (
                   <div key={title}>
                     <div className="mb-5 flex items-center gap-2 text-sm font-medium">
