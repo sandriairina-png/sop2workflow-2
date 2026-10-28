@@ -1,0 +1,107 @@
+[
+  {
+    "id": "implicit-condition-omission",
+    "category": "implicit condition omission",
+    "fixtureId": "inventoryBranch",
+    "model": "gemini-3.8-flash",
+    "promptVersion": "2026-10-28.1",
+    "expected": {
+      "trigger": "schedule",
+      "minBranches": 2,
+      "operations": ["read", "condition", "notify"],
+      "nodeTypes": ["n8n-nodes-base.if"],
+      "minRisks": 1,
+      "minTests": 1
+    }
+  },
+  {
+    "id": "parallel-work-serialized",
+    "category": "parallel work serialized",
+    "fixtureId": "inventoryBranch",
+    "model": "gemini-3.8-flash",
+    "promptVersion": "2026-10-28.1",
+    "expected": {
+      "trigger": "schedule",
+      "minBranches": 2,
+      "operations": ["condition"],
+      "nodeTypes": ["n8n-nodes-base.if"],
+      "minRisks": 1,
+      "minTests": 1
+    }
+  },
+  {
+    "id": "actor-confusion",
+    "category": "actor confusion",
+    "fixtureId": "rejectionNotice",
+    "model": "gemini-3.8-flash",
+    "promptVersion": "2026-10-28.1",
+    "expected": {
+      "trigger": "manual",
+      "minBranches": 2,
+      "operations": ["condition", "notify"],
+      "nodeTypes": ["n8n-nodes-base.emailSend"],
+      "minRisks": 1,
+      "minTests": 1
+    }
+  },
+  {
+    "id": "approval-keyword-misclassification",
+    "category": "approval keyword misclassification",
+    "fixtureId": "expenseBoundary",
+    "model": "gemini-3.8-flash",
+    "promptVersion": "2026-10-28.1",
+    "expected": {
+      "trigger": "manual",
+      "minBranches": 2,
+      "operations": ["condition", "approve"],
+      "nodeTypes": ["n8n-nodes-base.if"],
+      "minRisks": 1,
+      "minTests": 1
+    }
+  },
+  {
+    "id": "missing-rejection-path",
+    "category": "missing rejection path",
+    "fixtureId": "rejectionNotice",
+    "model": "gemini-3.8-flash",
+    "promptVersion": "2026-10-28.1",
+    "expected": {
+      "trigger": "manual",
+      "minBranches": 2,
+      "operations": ["notify"],
+      "nodeTypes": ["n8n-nodes-base.emailSend"],
+      "minRisks": 1,
+      "minTests": 1
+    }
+  },
+  {
+    "id": "fixed-deployment-copy",
+    "category": "fixed deployment copy",
+    "fixtureId": "missingIntegration",
+    "model": "gemini-3.8-flash",
+    "promptVersion": "2026-10-28.1",
+    "expected": {
+      "trigger": "manual",
+      "minBranches": 0,
+      "operations": ["write"],
+      "nodeTypes": ["n8n-nodes-base.httpRequest"],
+      "minRisks": 1,
+      "minTests": 1
+    }
+  },
+  {
+    "id": "empty-code-node-export",
+    "category": "empty Code-node export",
+    "fixtureId": "commaSeparated",
+    "model": "gemini-3.8-flash",
+    "promptVersion": "2026-10-28.1",
+    "expected": {
+      "trigger": "manual",
+      "minBranches": 0,
+      "operations": ["read", "transform", "write"],
+      "nodeTypes": ["n8n-nodes-base.set", "n8n-nodes-base.httpRequest"],
+      "minRisks": 1,
+      "minTests": 1
+    }
+  }
+]

@@ -301,7 +301,8 @@ test('hero integrates the React Bits Aurora background without changing workflow
     landingStyles,
     /\.linearity-aurora-stage\s*\{[\s\S]*?width:\s*100vw;[\s\S]*?height:\s*720px;/
   );
-  assert.match(studio, /generateSopWorkflow/);
+  assert.match(studio, /fetch\('\/api\/sop-workflow\/analyze'/);
+  assert.match(studio, /compileN8nWorkflow/);
 });
 
 test('SOP input panel uses the React Bits StarBorder effect', () => {

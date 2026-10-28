@@ -154,7 +154,7 @@ test('keeps rejection notification semantic', () => {
 test('rejects secret-like generated values', () => {
   const analysis = inventoryAnalysis();
   analysis.missingInformation = [
-    'Use credential sk-example-secret-value-1234567890',
+    'Use api_key=example-secret-value-1234567890',
   ];
   assert.throws(() => validateSopAnalysisGraph(analysis), /secret/i);
 });

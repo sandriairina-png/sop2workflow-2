@@ -8,6 +8,7 @@ import { TriggerHintSchema } from '@/shared/lib/sop-workflow/schema';
 import {
   consumeSopWorkflowQuota,
   hashSopWorkflowClient,
+  SOP_WORKFLOW_DEFAULT_LIMITS,
 } from '@/shared/models/sop_workflow_quota';
 
 const AnalyzeRequestSchema = z.object({
@@ -27,6 +28,11 @@ type AnalyzeHandlerDeps = {
 };
 
 let activeRequests = 0;
+
+function positiveInteger(value: string | undefined, fallback: number) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 function json(
   body: Record<string, unknown>,
@@ -90,16 +96,35 @@ export function createAnalyzeHandler(deps: AnalyzeHandlerDeps = {}) {
     }
 
     const salt =
-      deps.salt || process.env.SOP_WORKFLOW_RATE_SALT || process.env.AUTH_SECRET;
+      deps.salt ||
+      process.env.SOP_WORKFLOW_RATE_SALT ||
+      process.env.AUTH_SECRET;
     if (!salt) return json({ error: 'not_configured' }, 503);
 
-    const anonymousId = readCookie(request, 'sopwf_anon') || crypto.randomUUID();
+    const anonymousId =
+      readCookie(request, 'sopwf_anon') || crypto.randomUUID();
     const forwardedFor = request.headers.get('x-forwarded-for') || 'unknown';
     const clientHash = hashSopWorkflowClient(
       `${forwardedFor.split(',')[0].trim()}|${anonymousId}`,
       salt
     );
-    const decision = await quota({ clientHash });
+    const decision = await quota({
+      clientHash,
+      limits: {
+        intervalMs: positiveInteger(
+          process.env.SOP_WORKFLOW_MIN_INTERVAL_MS,
+          SOP_WORKFLOW_DEFAULT_LIMITS.intervalMs
+        ),
+        clientDaily: positiveInteger(
+          process.env.SOP_WORKFLOW_CLIENT_DAILY_LIMIT,
+          SOP_WORKFLOW_DEFAULT_LIMITS.clientDaily
+        ),
+        globalDaily: positiveInteger(
+          process.env.SOP_WORKFLOW_GLOBAL_DAILY_LIMIT,
+          SOP_WORKFLOW_DEFAULT_LIMITS.globalDaily
+        ),
+      },
+    });
     if (!decision.allowed) {
       const retryAfter = decision.retryAfterSeconds;
       return json(
