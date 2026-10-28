@@ -60,6 +60,10 @@ export const SOP_EXAMPLES = [
   '采购订单超过 10 万元时，需要财务和采购主管审批；通过后在 ERP 创建订单，失败时通知负责人。',
 ];
 
+export * from './sop-workflow/graph';
+export * from './sop-workflow/prompt';
+export * from './sop-workflow/schema';
+
 function cleanLine(line: string) {
   return line
     .replace(
