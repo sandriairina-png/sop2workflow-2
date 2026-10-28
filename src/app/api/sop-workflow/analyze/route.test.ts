@@ -39,16 +39,36 @@ const success: SopAnalysisResponse = {
   },
 };
 
-function request(body: unknown, contentType = 'application/json') {
-  return new Request('https://spwflow.online/api/sop-workflow/analyze', {
-    method: 'POST',
-    headers: {
-      'content-type': contentType,
-      'x-forwarded-for': '203.0.113.9',
-      origin: 'https://spwflow.online',
-    },
-    body: JSON.stringify(body),
-  });
+function request(
+  body: unknown,
+  contentType = 'application/json',
+  requestOptions: {
+    url?: string;
+    origin?: string;
+    host?: string;
+    forwardedHost?: string;
+    forwardedProto?: string;
+  } = {}
+) {
+  return new Request(
+    requestOptions.url || 'https://spwflow.online/api/sop-workflow/analyze',
+    {
+      method: 'POST',
+      headers: {
+        'content-type': contentType,
+        'x-forwarded-for': '203.0.113.9',
+        origin: requestOptions.origin || 'https://spwflow.online',
+        ...(requestOptions.host ? { host: requestOptions.host } : {}),
+        ...(requestOptions.forwardedHost
+          ? { 'x-forwarded-host': requestOptions.forwardedHost }
+          : {}),
+        ...(requestOptions.forwardedProto
+          ? { 'x-forwarded-proto': requestOptions.forwardedProto }
+          : {}),
+      },
+      body: JSON.stringify(body),
+    }
+  );
 }
 
 function handler(overrides: Parameters<typeof createAnalyzeHandler>[0] = {}) {
@@ -78,6 +98,46 @@ test('rejects invalid content type and request values', async () => {
     assert.equal(response.status, 400);
     assert.equal((await response.json()).error, 'invalid_request');
   }
+});
+
+test('accepts the public browser origin when the internal request URL differs', async () => {
+  const response = await handler()(
+    request(
+      { sop: '检查订单', locale: 'zh', triggerHint: 'auto' },
+      'application/json',
+      {
+        url: 'http://localhost:3000/api/sop-workflow/analyze',
+        origin: 'http://127.0.0.1:3000',
+        host: '127.0.0.1:3000',
+      }
+    )
+  );
+
+  assert.equal(response.status, 200);
+});
+
+test('accepts a forwarded production origin and rejects an unrelated origin', async () => {
+  const input = { sop: '检查订单', locale: 'zh', triggerHint: 'auto' };
+  const forwarded = await handler()(
+    request(input, 'application/json', {
+      url: 'http://internal:3000/api/sop-workflow/analyze',
+      origin: 'https://spwflow.online',
+      forwardedHost: 'spwflow.online',
+      forwardedProto: 'https',
+    })
+  );
+  assert.equal(forwarded.status, 200);
+
+  const unrelated = await handler()(
+    request(input, 'application/json', {
+      url: 'http://internal:3000/api/sop-workflow/analyze',
+      origin: 'https://attacker.example',
+      forwardedHost: 'spwflow.online',
+      forwardedProto: 'https',
+    })
+  );
+  assert.equal(unrelated.status, 403);
+  assert.equal((await unrelated.json()).error, 'invalid_origin');
 });
 
 test('returns a stable 429 for anonymous quota rejection', async () => {

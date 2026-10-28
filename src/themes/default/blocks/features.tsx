@@ -16,7 +16,7 @@ export function Features({
     <section
       id={section.id}
       className={cn(
-        'linearity-capability-strip bg-[#090a0d] py-24 text-[#f8f6f3] md:py-36',
+        'linearity-capability-strip linearity-subtle-field bg-[#090a0d] py-24 text-[#f8f6f3] md:py-36',
         section.className,
         className
       )}

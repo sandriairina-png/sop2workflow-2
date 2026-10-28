@@ -1,11 +1,13 @@
 'use client';
 
 import Image from 'next/image';
+import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/shared/components/ui/button';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -41,8 +43,19 @@ export function SignModal({ callbackUrl = '/' }: { callbackUrl?: string }) {
           data-ui="auth-dialog"
           overlayClassName="sop-sign-overlay"
           className={desktopDialogClassName}
+          showCloseButton={false}
         >
           <div className="sop-sign-aurora" aria-hidden="true" />
+          <DialogClose asChild>
+            <button
+              type="button"
+              onClick={() => setIsShowSignModal(false)}
+              className="absolute top-5 right-5 z-20 grid size-10 place-items-center rounded-full border border-white/10 bg-black/25 text-white/55 transition hover:border-white/24 hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+              aria-label={t('cancel_title')}
+            >
+              <X className="size-4" />
+            </button>
+          </DialogClose>
           <DialogHeader className="relative z-10 gap-0 px-8 pt-8 pb-6 text-left">
             <div className="mb-8 flex items-center gap-3">
               <Image
@@ -77,6 +90,16 @@ export function SignModal({ callbackUrl = '/' }: { callbackUrl?: string }) {
         className="sop-sign-dialog max-h-[92svh] rounded-t-[28px] border-white/[0.12] bg-[#08090d] text-white"
       >
         <div className="sop-sign-aurora" aria-hidden="true" />
+        <DrawerClose asChild>
+          <button
+            type="button"
+            onClick={() => setIsShowSignModal(false)}
+            className="absolute top-5 right-5 z-20 grid size-10 place-items-center rounded-full border border-white/10 bg-black/25 text-white/55 transition hover:border-white/24 hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+            aria-label={t('cancel_title')}
+          >
+            <X className="size-4" />
+          </button>
+        </DrawerClose>
         <DrawerHeader className="relative z-10 px-6 pt-5 text-left">
           <div className="mb-5 flex items-center gap-3">
             <Image src="/logo.svg" alt="" width={34} height={34} />

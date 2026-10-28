@@ -66,7 +66,6 @@ type StudioCopy = {
   primary_cta?: string;
   secondary_cta?: string;
   scroll_hint?: string;
-  prompt_caption?: string;
   input_label?: string;
   input_hint?: string;
   placeholder?: string;
@@ -75,6 +74,7 @@ type StudioCopy = {
   example_values?: string[];
   trigger_label?: string;
   trigger_auto?: string;
+  trigger_auto_hint?: string;
   trigger_manual?: string;
   trigger_schedule?: string;
   trigger_webhook?: string;
@@ -99,6 +99,13 @@ type StudioCopy = {
   assumptions?: string;
   tests?: string;
   error_empty?: string;
+  error_origin?: string;
+  error_busy?: string;
+  error_config?: string;
+  error_timeout?: string;
+  error_invalid_output?: string;
+  error_provider?: string;
+  error_generic?: string;
   local_session?: string;
   awaiting?: string;
   validate?: string;
@@ -198,7 +205,23 @@ export function SopWorkflowStudio({
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error || 'Unable to analyze this SOP.');
+        const messages: Record<string, string | undefined> = {
+          invalid_origin: copy.error_origin,
+          busy: copy.error_busy,
+          too_frequent: copy.error_busy,
+          client_daily_limit: copy.error_busy,
+          global_daily_limit: copy.error_busy,
+          not_configured: copy.error_config,
+          provider_timeout: copy.error_timeout,
+          invalid_output: copy.error_invalid_output,
+          provider_error: copy.error_provider,
+          internal_error: copy.error_generic,
+        };
+        throw new Error(
+          messages[payload.error] ||
+            copy.error_generic ||
+            'Unable to analyze this SOP. Please try again.'
+        );
       }
       const next = payload as SopAnalysisResponse;
       setResult(next);
@@ -261,11 +284,15 @@ export function SopWorkflowStudio({
   const triggerOptions: Array<{
     value: TriggerHint;
     label: string;
+    hint?: string;
     icon: typeof MousePointer2;
   }> = [
     {
       value: 'auto',
       label: copy.trigger_auto || 'Auto detect',
+      hint:
+        copy.trigger_auto_hint ||
+        'Infer manual, scheduled, or webhook triggering from the SOP.',
       icon: MousePointer2,
     },
     {
@@ -443,9 +470,6 @@ export function SopWorkflowStudio({
                   />
                   <div className="absolute right-5 bottom-5 left-5 flex items-end justify-between gap-4 md:right-7 md:bottom-7 md:left-7">
                     <div className="min-w-0">
-                      <div className="mb-2 hidden text-[11px] text-white/36 sm:block">
-                        {copy.prompt_caption || copy.input_hint}
-                      </div>
                       <div className="flex flex-wrap gap-1.5">
                         {triggerOptions.map((option) => {
                           const Icon = option.icon;
@@ -454,6 +478,8 @@ export function SopWorkflowStudio({
                               type="button"
                               key={option.value}
                               onClick={() => setMode(option.value)}
+                              title={option.hint}
+                              aria-label={option.hint || option.label}
                               className={cn(
                                 'linearity-mode inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px]',
                                 mode === option.value

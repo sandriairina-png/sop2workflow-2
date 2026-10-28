@@ -185,6 +185,50 @@ pre {
   color-scheme: dark;
 }
 
+.linearity-subtle-field {
+  position: relative;
+  isolation: isolate;
+}
+
+.linearity-subtle-field::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  opacity: 0.1;
+  background-image: url("data:image/svg+xml,%3Csvg width='1600' height='760' viewBox='0 0 1600 760' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cpath d='M-80 560 C260 350 470 690 790 430 S1320 240 1690 430' stroke='%237cff67' stroke-width='1'/%3E%3Cpath d='M-120 230 C210 40 520 320 820 175 S1330 40 1710 210' stroke='%235227ff' stroke-width='1'/%3E%3Cpath d='M240 90 L620 310 L410 650 Z' stroke='%23a99cff' stroke-width='1'/%3E%3Cpath d='M1080 130 L1480 360 L1180 690 Z' stroke='%237cff67' stroke-width='1'/%3E%3Cg fill='%23f8f7f4'%3E%3Ccircle cx='240' cy='90' r='3'/%3E%3Ccircle cx='620' cy='310' r='3'/%3E%3Ccircle cx='410' cy='650' r='3'/%3E%3Ccircle cx='1080' cy='130' r='3'/%3E%3Ccircle cx='1480' cy='360' r='3'/%3E%3Ccircle cx='1180' cy='690' r='3'/%3E%3Ccircle cx='820' cy='175' r='2'/%3E%3Ccircle cx='790' cy='430' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  background-position: center top;
+  background-size: min(1600px, 150vw) auto;
+  background-repeat: repeat-y;
+}
+
+.linearity-subtle-field > * {
+  position: relative;
+  z-index: 1;
+}
+
+.linearity-step-connector {
+  position: absolute;
+  z-index: 2;
+  top: 47px;
+  right: -12px;
+  width: 30px;
+  height: 1px;
+  background: rgb(169 156 255 / 0.34);
+}
+
+.linearity-step-connector::after {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  content: '';
+  background: #a99cff;
+}
+
 /* Product-aligned authentication surface */
 .sop-sign-overlay {
   background: rgb(2 3 5 / 0.82);

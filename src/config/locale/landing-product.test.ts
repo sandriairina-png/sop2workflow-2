@@ -168,6 +168,36 @@ test('SOP textarea hides its native scrollbar', () => {
   assert.match(studio, /id="sop-input"[\s\S]*?className="[^"]*scrollbar-hide/);
 });
 
+test('workflow input removes shortcut coaching and explains smart trigger detection', () => {
+  const studio = readFileSync(
+    new URL(
+      '../../themes/default/blocks/sop-workflow-studio.tsx',
+      import.meta.url
+    ),
+    'utf8'
+  );
+
+  assert.doesNotMatch(studio, /copy\.prompt_caption/);
+  assert.match(studio, /copy\.trigger_auto_hint/);
+  for (const locale of ['zh', 'en']) {
+    const workspace = json(`./messages/${locale}/pages/index.json`).page
+      .sections.hero.workspace;
+    assert.equal(workspace.prompt_caption, undefined);
+    assert.ok(workspace.trigger_auto_hint.length > 0);
+  }
+});
+
+test('sign-in modal exposes an explicit close action above decorative layers', () => {
+  const modal = readFileSync(
+    new URL('../../shared/blocks/sign/sign-modal.tsx', import.meta.url),
+    'utf8'
+  );
+
+  assert.match(modal, /showCloseButton=\{false\}/);
+  assert.match(modal, /onClick=\{\(\) => setIsShowSignModal\(false\)\}/);
+  assert.match(modal, /z-20/);
+});
+
 test('workflow preview heading and description are centered as one group', () => {
   const source = readFileSync(
     new URL(
@@ -202,6 +232,36 @@ test('lower landing blocks use the approved editorial composition', () => {
   assert.match(step, /linearity-editorial/);
   assert.match(features, /linearity-capability-strip/);
   assert.match(cta, /linearity-closing-cta/);
+});
+
+test('work method uses a compact four-step horizontal stepper', () => {
+  const step = readFileSync(
+    new URL('../../themes/default/blocks/features-step.tsx', import.meta.url),
+    'utf8'
+  );
+
+  assert.match(step, /<ol/);
+  assert.match(step, /lg:grid-cols-4/);
+  assert.match(step, /linearity-step-connector/);
+  assert.doesNotMatch(step, /linearity-editorial-canvas/);
+});
+
+test('sections after the hero share the subtle geometric background field', () => {
+  const files = [
+    '../../themes/default/blocks/features-step.tsx',
+    '../../themes/default/blocks/features.tsx',
+    '../../themes/default/blocks/faq.tsx',
+  ];
+  for (const file of files) {
+    const source = readFileSync(new URL(file, import.meta.url), 'utf8');
+    assert.match(source, /linearity-subtle-field/);
+  }
+  const styles = readFileSync(
+    new URL('../style/global.css', import.meta.url),
+    'utf8'
+  );
+  assert.match(styles, /\.linearity-subtle-field/);
+  assert.match(styles, /opacity:\s*0\.1/);
 });
 
 test('header uses the compact reference composition', () => {

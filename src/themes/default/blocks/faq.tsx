@@ -19,7 +19,7 @@ export function Faq({
   return (
     <section
       id={section.id}
-      className={`bg-[#050507] py-24 text-[#f8f6f3] md:py-36 ${className}`}
+      className={`linearity-subtle-field bg-[#050507] py-24 text-[#f8f6f3] md:py-36 ${className}`}
     >
       <div className="mx-auto grid max-w-[1400px] gap-12 px-5 md:px-8 lg:grid-cols-[.7fr_1.3fr] xl:px-12">
         <ScrollAnimation>

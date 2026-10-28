@@ -57,6 +57,40 @@ function readCookie(request: Request, name: string) {
   return '';
 }
 
+function firstHeaderValue(value: string | null) {
+  return value?.split(',')[0]?.trim() || '';
+}
+
+function isTrustedRequestOrigin(request: Request, origin: string) {
+  let originUrl: URL;
+  try {
+    originUrl = new URL(origin);
+  } catch {
+    return false;
+  }
+
+  const requestUrl = new URL(request.url);
+  const host =
+    firstHeaderValue(request.headers.get('x-forwarded-host')) ||
+    firstHeaderValue(request.headers.get('host')) ||
+    requestUrl.host;
+  const protocol =
+    firstHeaderValue(request.headers.get('x-forwarded-proto')) ||
+    requestUrl.protocol.replace(':', '');
+  const trustedOrigins = new Set([`${protocol}://${host}`]);
+
+  const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (configuredAppUrl) {
+    try {
+      trustedOrigins.add(new URL(configuredAppUrl).origin);
+    } catch {
+      // Invalid deployment configuration must not weaken the origin check.
+    }
+  }
+
+  return trustedOrigins.has(originUrl.origin);
+}
+
 function safeError(error: unknown) {
   if (!(error instanceof EvolinkError)) {
     return { status: 500, code: 'internal_error' };
@@ -84,7 +118,7 @@ export function createAnalyzeHandler(deps: AnalyzeHandlerDeps = {}) {
     }
 
     const origin = request.headers.get('origin');
-    if (origin && origin !== new URL(request.url).origin) {
+    if (origin && !isTrustedRequestOrigin(request, origin)) {
       return json({ error: 'invalid_origin' }, 403);
     }
 
