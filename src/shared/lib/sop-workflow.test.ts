@@ -1,48 +1,71 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { generateSopWorkflow } from './sop-workflow';
+import { compileN8nWorkflow, SopAnalysis } from './sop-workflow';
 
-test('extracts a daily time into an n8n schedule trigger', () => {
-  const result = generateSopWorkflow(
-    '每天 9 点从 ERP 拉取待发货订单，检查库存。',
-    'schedule'
+function basicAnalysis(): SopAnalysis {
+  return {
+    schemaVersion: '1.0',
+    title: 'ERP 订单校验',
+    summary: '校验订单后结束。',
+    trigger: { type: 'manual', description: '人工触发' },
+    actors: [],
+    steps: [
+      {
+        id: 'validate-order',
+        title: '校验订单',
+        description: '检查订单必填字段。',
+        operation: 'transform',
+        inputs: ['order'],
+        outputs: ['validatedOrder'],
+        next: [
+          { targetStepId: 'done', label: '完成', branch: 'default' },
+        ],
+        errorHandling: [],
+      },
+      {
+        id: 'done',
+        title: '结束',
+        description: '流程结束。',
+        operation: 'end',
+        inputs: [],
+        outputs: [],
+        next: [],
+        errorHandling: [],
+      },
+    ],
+    assumptions: [],
+    missingInformation: [],
+    deploymentChecklist: ['导入 n8n 后检查字段映射。'],
+    risks: [],
+    tests: [],
+  };
+}
+
+test('compiles valid trigger structure and inactive workflow', () => {
+  const result = compileN8nWorkflow(basicAnalysis());
+  assert.equal(result.nodes[0].type, 'n8n-nodes-base.manualTrigger');
+  assert.equal(result.active, false);
+});
+
+test('generates unique node ids and names', () => {
+  const result = compileN8nWorkflow(basicAnalysis());
+  assert.equal(
+    new Set(result.nodes.map((node) => node.id)).size,
+    result.nodes.length
   );
-  const trigger = result.workflow.nodes[0];
-
-  assert.deepEqual(trigger.parameters, {
-    rule: {
-      interval: [
-        {
-          field: 'days',
-          daysInterval: 1,
-          triggerAtHour: 9,
-          triggerAtMinute: 0,
-        },
-      ],
-    },
-  });
-  assert.equal(result.workflow.active, false);
+  assert.equal(
+    new Set(result.nodes.map((node) => node.name)).size,
+    result.nodes.length
+  );
 });
 
-test('notification takes precedence when a step also mentions inventory', () => {
-  const result = generateSopWorkflow('库存不足则通知采购。', 'manual');
-  assert.equal(result.steps[1].kind, 'notify');
-});
-
-test('throws a clear error for empty SOP input', () => {
-  assert.throws(() => generateSopWorkflow('   ', 'manual'), /SOP/);
-});
-
-test('connects every generated node in order', () => {
-  const result = generateSopWorkflow('校验订单。\n通知仓库。', 'manual');
-  assert.equal(result.workflow.nodes.length, 3);
-  assert.equal(Object.keys(result.workflow.connections).length, 2);
-});
-
-test('localizes generated review copy for Chinese SOPs', () => {
-  const result = generateSopWorkflow('校验订单。\n通知仓库。', 'manual', 'zh');
-  assert.equal(result.steps[0].title, '手动触发');
-  assert.match(result.summary, /2 个业务步骤/);
-  assert.match(result.checklist[0], /导入 n8n/);
+test('keeps every connection target present in the workflow', () => {
+  const result = compileN8nWorkflow(basicAnalysis());
+  const names = new Set(result.nodes.map((node) => node.name));
+  for (const connection of Object.values(result.connections) as any[]) {
+    for (const output of connection.main) {
+      for (const edge of output) assert.ok(names.has(edge.node));
+    }
+  }
 });
