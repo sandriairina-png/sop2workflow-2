@@ -134,6 +134,7 @@ export function SopWorkflowStudio({
   const [validatedAnalysis, setValidatedAnalysis] =
     useState<SopAnalysis | null>(null);
   const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  const [draftIsValid, setDraftIsValid] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'flow' | 'json' | 'setup'>('flow');
   const [busy, setBusy] = useState(false);
@@ -183,6 +184,7 @@ export function SopWorkflowStudio({
     setError('');
     setBusy(true);
     setReviewConfirmed(false);
+    setDraftIsValid(false);
     setValidationMessage('');
     try {
       const response = await fetch('/api/sop-workflow/analyze', {
@@ -201,6 +203,7 @@ export function SopWorkflowStudio({
       const next = payload as SopAnalysisResponse;
       setResult(next);
       setValidatedAnalysis(next.analysis);
+      setDraftIsValid(true);
       setAnalysisDraft(JSON.stringify(next.analysis, null, 2));
       setValidationMessage(copy.validated || 'Structure validated');
       setActiveTab('flow');
@@ -225,11 +228,12 @@ export function SopWorkflowStudio({
     try {
       const analysis = validateAnalysisDraft(analysisDraft);
       setValidatedAnalysis(analysis);
+      setDraftIsValid(true);
       setValidationMessage(copy.validated || 'Structure validated');
       setReviewConfirmed(false);
       setError('');
     } catch (reason) {
-      setValidatedAnalysis(null);
+      setDraftIsValid(false);
       setReviewConfirmed(false);
       setValidationMessage('');
       setError(reason instanceof Error ? reason.message : 'Invalid JSON');
@@ -668,23 +672,54 @@ export function SopWorkflowStudio({
                             </div>
                           ) : null}
                           {edges.length ? (
-                            <div className="mt-4 flex flex-wrap gap-2 border-t border-white/[0.08] pt-3">
-                              {edges.map((edge) => (
-                                <span
-                                  key={`${step.id}-${edge.targetStepId}-${edge.label}`}
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-[#a99cff]/25 bg-[#a99cff]/[0.08] px-2.5 py-1 text-[10px] text-[#d5d0ff]"
-                                >
-                                  <GitBranch className="size-3" />
-                                  {edge.label} → {edge.targetStepId}
-                                </span>
-                              ))}
+                            <div
+                              className={cn(
+                                'linearity-branch-lanes relative mt-5 grid gap-3 border-t border-white/[0.08] pt-6',
+                                edges.length > 1 && 'md:grid-cols-2'
+                              )}
+                              aria-label={`${step.title} branches`}
+                            >
+                              <span className="absolute top-0 left-1/2 h-6 w-px -translate-x-1/2 bg-[#a99cff]/35" />
+                              {edges.map((edge) => {
+                                const target = validatedAnalysis?.steps.find(
+                                  (candidate) =>
+                                    candidate.id === edge.targetStepId
+                                );
+                                return (
+                                  <div
+                                    key={`${step.id}-${edge.targetStepId}-${edge.label}`}
+                                    className="linearity-branch-lane relative min-h-24 rounded-xl border border-[#a99cff]/25 bg-[#a99cff]/[0.06] p-3"
+                                  >
+                                    <span className="absolute -top-6 left-1/2 h-6 w-px -translate-x-1/2 bg-[#a99cff]/35" />
+                                    <div className="flex items-center justify-between gap-2 text-[9px] tracking-[0.1em] text-[#a99cff] uppercase">
+                                      <span>{edge.branch}</span>
+                                      <GitBranch className="size-3" />
+                                    </div>
+                                    <div className="mt-2 text-xs font-medium text-white/85">
+                                      {edge.label}
+                                    </div>
+                                    <div className="mt-2 text-[10px] leading-4 text-white/42">
+                                      → {target?.title || edge.targetStepId}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           ) : null}
                           {step.errorHandling.length ? (
-                            <div className="mt-3 rounded-xl border border-[#ff9f9f]/20 bg-[#ff9f9f]/[0.05] px-3 py-2 text-[10px] leading-5 text-[#ffc5c5]">
+                            <div className="mt-3 space-y-2 border-t border-[#ff9f9f]/15 pt-3">
                               {step.errorHandling.map((item) => (
-                                <div key={`${step.id}-${item.scenario}`}>
+                                <div
+                                  key={`${step.id}-${item.scenario}`}
+                                  className="linearity-branch-lane rounded-xl border border-[#ff9f9f]/20 bg-[#ff9f9f]/[0.05] px-3 py-2 text-[10px] leading-5 text-[#ffc5c5]"
+                                >
+                                  <span className="mr-2 font-semibold uppercase">
+                                    error
+                                  </span>
                                   {item.scenario}: {item.action}
+                                  {item.targetStepId
+                                    ? ` → ${item.targetStepId}`
+                                    : ''}
                                 </div>
                               ))}
                             </div>
@@ -724,7 +759,7 @@ export function SopWorkflowStudio({
                   spellCheck={false}
                   onChange={(event) => {
                     setAnalysisDraft(event.target.value);
-                    setValidatedAnalysis(null);
+                    setDraftIsValid(false);
                     setReviewConfirmed(false);
                     setValidationMessage('');
                     setError('');
@@ -734,6 +769,11 @@ export function SopWorkflowStudio({
                     copy.structured_json || 'Structured workflow JSON'
                   }
                 />
+                {error ? (
+                  <p className="mt-3 rounded-xl border border-[#ff9f9f]/20 bg-[#ff9f9f]/[0.05] px-3 py-2 text-[11px] leading-5 text-[#ffc5c5]">
+                    {error}
+                  </p>
+                ) : null}
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3">
                   <span className="inline-flex items-center gap-2 text-[11px] text-[#9ee792]">
                     {validationMessage ? (
@@ -747,7 +787,7 @@ export function SopWorkflowStudio({
                     <input
                       type="checkbox"
                       checked={reviewConfirmed}
-                      disabled={!validatedAnalysis}
+                      disabled={!draftIsValid}
                       onChange={(event) =>
                         setReviewConfirmed(event.target.checked)
                       }

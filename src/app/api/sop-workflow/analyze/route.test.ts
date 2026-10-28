@@ -95,9 +95,21 @@ test('returns a stable 429 for anonymous quota rejection', async () => {
 
 test('maps safe provider errors without leaking details', async () => {
   const cases = [
-    [new EvolinkError('not_configured', 'secret config path'), 503, 'not_configured'],
-    [new EvolinkError('timeout', 'upstream host detail'), 504, 'provider_timeout'],
-    [new EvolinkError('invalid_output', 'raw model output'), 502, 'invalid_output'],
+    [
+      new EvolinkError('not_configured', 'secret config path'),
+      503,
+      'not_configured',
+    ],
+    [
+      new EvolinkError('timeout', 'upstream host detail'),
+      504,
+      'provider_timeout',
+    ],
+    [
+      new EvolinkError('invalid_output', 'raw model output'),
+      502,
+      'invalid_output',
+    ],
   ] as const;
   for (const [error, status, code] of cases) {
     const response = await handler({
@@ -108,7 +120,10 @@ test('maps safe provider errors without leaking details', async () => {
     const body = await response.json();
     assert.equal(response.status, status);
     assert.equal(body.error, code);
-    assert.doesNotMatch(JSON.stringify(body), /secret config|upstream host|raw model/);
+    assert.doesNotMatch(
+      JSON.stringify(body),
+      /secret config|upstream host|raw model/
+    );
   }
 });
 
@@ -120,4 +135,53 @@ test('returns validated analysis with no-store and anonymous cookie', async () =
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.match(response.headers.get('set-cookie') || '', /sopwf_anon=/);
   assert.deepEqual(await response.json(), success);
+});
+
+test('uses a stable client identity even when the caller drops cookies', async () => {
+  const hashes: string[] = [];
+  const analyze = handler({
+    quota: async ({ clientHash }) => {
+      hashes.push(clientHash);
+      return { allowed: true, remainingClient: 19, remainingGlobal: 199 };
+    },
+  });
+  await analyze(
+    request({ sop: '检查订单', locale: 'zh', triggerHint: 'auto' })
+  );
+  await analyze(
+    request({ sop: '检查订单', locale: 'zh', triggerHint: 'auto' })
+  );
+  assert.equal(hashes.length, 2);
+  assert.equal(hashes[0], hashes[1]);
+});
+
+test('rejects excess concurrency before consuming daily quota', async () => {
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let quotaCalls = 0;
+  const analyze = handler({
+    maxConcurrent: 1,
+    quota: async () => {
+      quotaCalls += 1;
+      return { allowed: true, remainingClient: 19, remainingGlobal: 199 };
+    },
+    analyze: async () => {
+      await pending;
+      return success;
+    },
+  });
+  const first = analyze(
+    request({ sop: '检查订单', locale: 'zh', triggerHint: 'auto' })
+  );
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const second = await analyze(
+    request({ sop: '检查订单', locale: 'zh', triggerHint: 'auto' })
+  );
+  assert.equal(second.status, 429);
+  assert.equal((await second.json()).error, 'busy');
+  assert.equal(quotaCalls, 1);
+  release();
+  await first;
 });

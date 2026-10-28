@@ -336,6 +336,20 @@ test('SOP input panel uses the React Bits StarBorder effect', () => {
   );
 });
 
+test('workflow preview renders explicit branch lanes instead of label-only badges', () => {
+  const studio = readFileSync(
+    new URL(
+      '../../themes/default/blocks/sop-workflow-studio.tsx',
+      import.meta.url
+    ),
+    'utf8'
+  );
+  assert.match(studio, /linearity-branch-lanes/);
+  assert.match(studio, /linearity-branch-lane/);
+  assert.match(studio, /edge\.branch/);
+  assert.match(studio, /edge\.targetStepId/);
+});
+
 test('SOP input panel stays transparent behind the animated border', () => {
   const styles = readFileSync(
     new URL('../style/global.css', import.meta.url),

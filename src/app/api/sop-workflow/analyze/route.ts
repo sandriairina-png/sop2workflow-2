@@ -101,48 +101,47 @@ export function createAnalyzeHandler(deps: AnalyzeHandlerDeps = {}) {
       process.env.AUTH_SECRET;
     if (!salt) return json({ error: 'not_configured' }, 503);
 
-    const anonymousId =
-      readCookie(request, 'sopwf_anon') || crypto.randomUUID();
-    const forwardedFor = request.headers.get('x-forwarded-for') || 'unknown';
-    const clientHash = hashSopWorkflowClient(
-      `${forwardedFor.split(',')[0].trim()}|${anonymousId}`,
-      salt
-    );
-    const decision = await quota({
-      clientHash,
-      limits: {
-        intervalMs: positiveInteger(
-          process.env.SOP_WORKFLOW_MIN_INTERVAL_MS,
-          SOP_WORKFLOW_DEFAULT_LIMITS.intervalMs
-        ),
-        clientDaily: positiveInteger(
-          process.env.SOP_WORKFLOW_CLIENT_DAILY_LIMIT,
-          SOP_WORKFLOW_DEFAULT_LIMITS.clientDaily
-        ),
-        globalDaily: positiveInteger(
-          process.env.SOP_WORKFLOW_GLOBAL_DAILY_LIMIT,
-          SOP_WORKFLOW_DEFAULT_LIMITS.globalDaily
-        ),
-      },
-    });
-    if (!decision.allowed) {
-      const retryAfter = decision.retryAfterSeconds;
-      return json(
-        { error: decision.code },
-        429,
-        retryAfter ? { 'retry-after': String(retryAfter) } : undefined
-      );
-    }
-
     if (activeRequests >= maxConcurrent) {
       return json({ error: 'busy' }, 429, { 'retry-after': '5' });
     }
 
     activeRequests += 1;
     try {
+      const forwardedFor = request.headers.get('x-forwarded-for') || 'unknown';
+      const clientHash = hashSopWorkflowClient(
+        forwardedFor.split(',')[0].trim(),
+        salt
+      );
+      const decision = await quota({
+        clientHash,
+        limits: {
+          intervalMs: positiveInteger(
+            process.env.SOP_WORKFLOW_MIN_INTERVAL_MS,
+            SOP_WORKFLOW_DEFAULT_LIMITS.intervalMs
+          ),
+          clientDaily: positiveInteger(
+            process.env.SOP_WORKFLOW_CLIENT_DAILY_LIMIT,
+            SOP_WORKFLOW_DEFAULT_LIMITS.clientDaily
+          ),
+          globalDaily: positiveInteger(
+            process.env.SOP_WORKFLOW_GLOBAL_DAILY_LIMIT,
+            SOP_WORKFLOW_DEFAULT_LIMITS.globalDaily
+          ),
+        },
+      });
+      if (!decision.allowed) {
+        const retryAfter = decision.retryAfterSeconds;
+        return json(
+          { error: decision.code },
+          429,
+          retryAfter ? { 'retry-after': String(retryAfter) } : undefined
+        );
+      }
+
       const result = await analyze(input);
       const response = json(result as unknown as Record<string, unknown>, 200);
       if (!readCookie(request, 'sopwf_anon')) {
+        const anonymousId = crypto.randomUUID();
         response.headers.append(
           'set-cookie',
           `sopwf_anon=${encodeURIComponent(anonymousId)}; Path=/; Max-Age=31536000; SameSite=Lax; Secure; HttpOnly`

@@ -4,7 +4,9 @@ import test from 'node:test';
 import { compileN8nWorkflow } from './compiler';
 import { SopAnalysis, SopStep } from './schema';
 
-function step(overrides: Partial<SopStep> & Pick<SopStep, 'id' | 'operation'>): SopStep {
+function step(
+  overrides: Partial<SopStep> & Pick<SopStep, 'id' | 'operation'>
+): SopStep {
   return {
     title: overrides.id,
     description: overrides.id,
@@ -117,7 +119,9 @@ test('preserves greater-than-or-equal 5000 in an If node', () => {
       step({ id: 'manager', operation: 'approve' }),
     ])
   );
-  const node = result.nodes.find((candidate) => candidate.id === 'amount-check')!;
+  const node = result.nodes.find(
+    (candidate) => candidate.id === 'amount-check'
+  )!;
   const item = (node.parameters.conditions as any).conditions[0];
   assert.equal(item.operator.operation, 'gte');
   assert.equal(item.rightValue, 5000);
@@ -216,4 +220,30 @@ test('exports inactive workflows', () => {
     analysis([step({ id: 'done', operation: 'end' })])
   );
   assert.equal(result.active, false);
+});
+
+test('compiles explicit exception targets as n8n error outputs', () => {
+  const result = compileN8nWorkflow(
+    analysis([
+      step({
+        id: 'erp-read',
+        operation: 'read',
+        next: [{ targetStepId: 'done', label: '成功', branch: 'default' }],
+        errorHandling: [
+          {
+            scenario: 'ERP 超时',
+            action: '通知管理员',
+            targetStepId: 'notify-error',
+          },
+        ],
+      }),
+      step({ id: 'done', operation: 'end' }),
+      step({ id: 'notify-error', operation: 'notify' }),
+    ])
+  );
+  const source = result.nodes.find((node) => node.id === 'erp-read')!;
+  assert.equal(source.onError, 'continueErrorOutput');
+  const outputs = (result.connections[source.name] as any).main;
+  assert.equal(outputs[0][0].node, 'done');
+  assert.equal(outputs[1][0].node, 'notify-error');
 });

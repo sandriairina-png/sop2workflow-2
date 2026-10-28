@@ -10,6 +10,7 @@ export type N8nNode = {
   parameters: Record<string, unknown>;
   disabled?: boolean;
   webhookId?: string;
+  onError?: 'continueErrorOutput';
 };
 
 export type N8nWorkflow = {
@@ -190,7 +191,9 @@ function nodeForStep(
 
   if (step.operation === 'notify') {
     if (/email|邮件|邮箱/i.test(step.integration?.system || '')) {
-      requirements.push(`${step.title}: configure email credentials and recipient.`);
+      requirements.push(
+        `${step.title}: configure email credentials and recipient.`
+      );
       return {
         ...base,
         type: 'n8n-nodes-base.emailSend',
@@ -206,7 +209,9 @@ function nodeForStep(
         },
       };
     }
-    requirements.push(`${step.title}: choose and configure a notification channel.`);
+    requirements.push(
+      `${step.title}: choose and configure a notification channel.`
+    );
     return {
       ...base,
       type: 'n8n-nodes-base.noOp',
@@ -244,14 +249,17 @@ function nodeForStep(
   }
 
   if (step.operation === 'approve') {
-    requirements.push(`${step.title}: configure the approval channel and assignee.`);
+    requirements.push(
+      `${step.title}: configure the approval channel and assignee.`
+    );
   }
   return {
     ...base,
     type: 'n8n-nodes-base.noOp',
     typeVersion: 1,
     disabled: step.operation === 'approve',
-    parameters: step.operation === 'approve' ? { notice: step.description } : {},
+    parameters:
+      step.operation === 'approve' ? { notice: step.description } : {},
   };
 }
 
@@ -269,6 +277,11 @@ export function compileN8nWorkflow(input: SopAnalysis): N8nWorkflow {
   const stepNodes = analysis.steps.map((step, index) =>
     nodeForStep(step, index, requirements)
   );
+  stepNodes.forEach((node, index) => {
+    if (analysis.steps[index].errorHandling.some((item) => item.targetStepId)) {
+      node.onError = 'continueErrorOutput';
+    }
+  });
   const nodes = [trigger, ...stepNodes];
   const connections: Record<string, { main: Array<Array<object>> }> = {
     [trigger.name]: {
@@ -277,7 +290,8 @@ export function compileN8nWorkflow(input: SopAnalysis): N8nWorkflow {
   };
 
   for (const step of analysis.steps) {
-    if (!step.next.length) continue;
+    const errorTargets = step.errorHandling.filter((item) => item.targetStepId);
+    if (!step.next.length && !errorTargets.length) continue;
     const outputs: Array<Array<object>> = [];
     step.next.forEach((edge, index) => {
       const slot = outputIndex(step, edge, index);
@@ -288,6 +302,22 @@ export function compileN8nWorkflow(input: SopAnalysis): N8nWorkflow {
         index: 0,
       });
     });
+    if (errorTargets.length) {
+      const errorSlot =
+        step.operation === 'condition'
+          ? step.next.length > 2
+            ? step.next.length
+            : 2
+          : 1;
+      outputs[errorSlot] ||= [];
+      for (const error of errorTargets) {
+        outputs[errorSlot].push({
+          node: error.targetStepId!,
+          type: 'main',
+          index: 0,
+        });
+      }
+    }
     for (let index = 0; index < outputs.length; index += 1) {
       outputs[index] ||= [];
     }
@@ -310,4 +340,3 @@ export function compileN8nWorkflow(input: SopAnalysis): N8nWorkflow {
     configurationRequirements: requirements,
   };
 }
-
