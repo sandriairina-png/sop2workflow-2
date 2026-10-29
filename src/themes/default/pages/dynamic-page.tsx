@@ -55,7 +55,7 @@ export default async function DynamicPage({
                     blur={block === 'hero' ? 0 : 4}
                     threshold={0.12}
                     trigger={block === 'hero' ? 'mount' : 'scroll'}
-                    once
+                    once={false}
                   >
                     {content}
                   </AnimatedContent>

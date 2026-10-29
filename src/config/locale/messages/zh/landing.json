@@ -18,13 +18,7 @@
         { "title": "产品能力", "url": "/#features", "icon": "Boxes" }
       ]
     },
-    "buttons": [
-      {
-        "title": "立即体验",
-        "url": "/#sop-workspace",
-        "target": "_self"
-      }
-    ],
+    "buttons": [],
     "user_nav": {
       "show_name": true,
       "show_credits": false,

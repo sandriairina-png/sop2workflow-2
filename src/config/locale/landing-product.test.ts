@@ -34,9 +34,44 @@ test('public navigation only exposes product-relevant destinations', () => {
     );
     assert.match(serialized, /#workspace/);
     assert.match(serialized, /#features/);
-    assert.equal(landing.header.buttons.length, 1);
-    assert.match(landing.header.buttons[0].url, /#sop-workspace/);
+    assert.deepEqual(landing.header.buttons, []);
   }
+});
+
+test('header anchors use smooth in-page navigation', () => {
+  const header = readFileSync(
+    new URL('../../themes/default/blocks/header.tsx', import.meta.url),
+    'utf8'
+  );
+
+  assert.match(header, /function handleAnchorNavigation/);
+  assert.match(
+    header,
+    /scrollIntoView\(\{[\s\S]*?behavior: reduceMotion \? 'auto' : 'smooth'/
+  );
+  assert.match(
+    header,
+    /onClick=\{\(event\) =>[\s\S]*?handleAnchorNavigation\(event, item\.url\)/
+  );
+
+  for (const file of [
+    '../../themes/default/blocks/features-step.tsx',
+    '../../themes/default/blocks/features.tsx',
+    '../../themes/default/blocks/faq.tsx',
+  ]) {
+    const section = readFileSync(new URL(file, import.meta.url), 'utf8');
+    assert.match(section, /scroll-mt-24/);
+  }
+
+  const globalStyles = readFileSync(
+    new URL('../style/global.css', import.meta.url),
+    'utf8'
+  );
+  assert.match(globalStyles, /scroll-behavior:\s*smooth/);
+  assert.match(
+    globalStyles,
+    /prefers-reduced-motion:\s*reduce[\s\S]*?scroll-behavior:\s*auto/
+  );
 });
 
 test('metadata identifies SOP2Workflow in both locales', () => {
@@ -185,6 +220,44 @@ test('workflow input removes shortcut coaching and explains smart trigger detect
     assert.equal(workspace.prompt_caption, undefined);
     assert.ok(workspace.trigger_auto_hint.length > 0);
   }
+});
+
+test('workflow generation communicates progress and completion timing', () => {
+  const studio = readFileSync(
+    new URL(
+      '../../themes/default/blocks/sop-workflow-studio.tsx',
+      import.meta.url
+    ),
+    'utf8'
+  );
+
+  assert.match(studio, /generating_eta/);
+  assert.match(studio, /generating_statuses/);
+  assert.match(studio, /aria-live="polite"/);
+  assert.match(studio, /elapsedSeconds/);
+  assert.match(studio, /resultRef\.current\?\.scrollIntoView/);
+
+  for (const locale of ['zh', 'en']) {
+    const workspace = json(`./messages/${locale}/pages/index.json`).page
+      .sections.hero.workspace;
+    assert.ok(workspace.generating_eta.length > 0);
+    assert.equal(workspace.generating_statuses.length, 3);
+  }
+});
+
+test('landing reveal animations replay when sections re-enter the viewport', () => {
+  const page = readFileSync(
+    new URL('../../themes/default/pages/dynamic-page.tsx', import.meta.url),
+    'utf8'
+  );
+  const scrollAnimation = readFileSync(
+    new URL('../../shared/components/ui/scroll-animation.tsx', import.meta.url),
+    'utf8'
+  );
+
+  assert.match(page, /once=\{false\}/);
+  assert.match(scrollAnimation, /once: false/);
+  assert.doesNotMatch(page, /\s+once\s*>/);
 });
 
 test('sign-in modal exposes an explicit close action above decorative layers', () => {

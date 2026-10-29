@@ -37,6 +37,13 @@
           "trigger_webhook": "Webhook",
           "generate": "生成 n8n 工作流",
           "generating": "正在分析 SOP",
+          "generating_eta": "预计 30–60 秒完成，请保持页面开启",
+          "generating_elapsed": "已用时 {seconds} 秒",
+          "generating_statuses": [
+            "正在识别触发方式与参与角色",
+            "正在拆解步骤、条件和异常分支",
+            "正在校验流程连通性与部署清单"
+          ],
           "privacy": "SOP 仅用于本次模型分析；不会写入业务数据库，生成结果也不包含凭据",
           "preview": "流程预览",
           "json": "结构 JSON",

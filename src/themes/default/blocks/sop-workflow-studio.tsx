@@ -80,6 +80,9 @@ type StudioCopy = {
   trigger_webhook?: string;
   generate?: string;
   generating?: string;
+  generating_eta?: string;
+  generating_elapsed?: string;
+  generating_statuses?: string[];
   privacy?: string;
   preview?: string;
   json?: string;
@@ -145,6 +148,7 @@ export function SopWorkflowStudio({
   const [validationMessage, setValidationMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'flow' | 'json' | 'setup'>('flow');
   const [busy, setBusy] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -169,6 +173,16 @@ export function SopWorkflowStudio({
     const timeout = window.setTimeout(() => setCopied(false), 1800);
     return () => window.clearTimeout(timeout);
   }, [copied]);
+
+  useEffect(() => {
+    if (!busy) return;
+    setElapsedSeconds(0);
+    const interval = window.setInterval(
+      () => setElapsedSeconds((seconds) => seconds + 1),
+      1000
+    );
+    return () => window.clearInterval(interval);
+  }, [busy]);
 
   function revealInput() {
     workspaceRef.current?.scrollIntoView({
@@ -230,13 +244,16 @@ export function SopWorkflowStudio({
       setAnalysisDraft(JSON.stringify(next.analysis, null, 2));
       setValidationMessage(copy.validated || 'Structure validated');
       setActiveTab('flow');
+      const reduceMotion = window.matchMedia(
+        '(prefers-reduced-motion: reduce)'
+      ).matches;
       window.setTimeout(
         () =>
           resultRef.current?.scrollIntoView({
-            behavior: 'smooth',
+            behavior: reduceMotion ? 'auto' : 'smooth',
             block: 'start',
           }),
-        80
+        120
       );
     } catch (reason) {
       setError(
@@ -515,6 +532,35 @@ export function SopWorkflowStudio({
                 <p className="mt-3 text-sm text-[#ff9f9f]" role="alert">
                   {error}
                 </p>
+              ) : null}
+
+              {busy ? (
+                <div
+                  className="mx-auto mt-4 flex max-w-[620px] items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-left backdrop-blur-xl"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-[#090a0d]">
+                    <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-medium text-white/88">
+                      {copy.generating_statuses?.[
+                        elapsedSeconds < 10 ? 0 : elapsedSeconds < 25 ? 1 : 2
+                      ] ||
+                        copy.generating ||
+                        'Analyzing SOP'}
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-white/42">
+                      <span>{copy.generating_eta}</span>
+                      <span>
+                        {(
+                          copy.generating_elapsed || '{seconds}s elapsed'
+                        ).replace('{seconds}', String(elapsedSeconds))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               ) : null}
 
               <div className="mt-5 flex flex-wrap justify-center gap-2">

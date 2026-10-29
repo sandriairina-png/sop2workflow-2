@@ -20,7 +20,7 @@ export function FeaturesStep({
     <section
       id={section.id}
       className={cn(
-        'linearity-editorial linearity-subtle-field overflow-hidden bg-[#050507] py-24 text-[#f8f6f3] md:py-32',
+        'linearity-editorial linearity-subtle-field scroll-mt-24 overflow-hidden bg-[#050507] py-24 text-[#f8f6f3] md:py-32',
         section.className,
         className
       )}

@@ -21,7 +21,7 @@ export function ScrollAnimation({
 }: ScrollAnimationProps) {
   const ref = useRef(null);
   const isInView = useInView(ref, {
-    once: true,
+    once: false,
     margin: "-50px", // Optimization: trigger animation earlier for better perceived performance
   });
 

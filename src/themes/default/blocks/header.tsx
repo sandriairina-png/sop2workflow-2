@@ -51,6 +51,27 @@ export function Header({ header }: { header: HeaderType }) {
   const isLarge = useMedia('(min-width: 64rem)');
   const pathname = usePathname();
 
+  function handleAnchorNavigation(
+    event: React.MouseEvent<HTMLAnchorElement>,
+    href?: string
+  ) {
+    const hash = href?.includes('#') ? href.slice(href.indexOf('#') + 1) : '';
+    if (!hash) return;
+
+    const target = document.getElementById(hash);
+    if (!target) return;
+
+    event.preventDefault();
+    const reduceMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
+    target.scrollIntoView({
+      behavior: reduceMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+    window.history.replaceState(null, '', `#${hash}`);
+  }
+
   useEffect(() => {
     // Listen to scroll event to enable header styles on scroll
     const handleScroll = () => {
@@ -94,6 +115,7 @@ export function Header({ header }: { header: HeaderType }) {
                   <Link
                     href={item.url || ''}
                     target={item.target || '_self'}
+                    onClick={(event) => handleAnchorNavigation(event, item.url)}
                     className={`flex flex-row items-center gap-2 rounded-full px-4 py-2 text-[13px] text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white ${
                       item.is_active || pathname.endsWith(item.url as string)
                         ? 'bg-muted/40 text-muted-foreground'
@@ -193,7 +215,10 @@ export function Header({ header }: { header: HeaderType }) {
                 ) : (
                   <Link
                     href={item.url || ''}
-                    onClick={closeMenu}
+                    onClick={(event) => {
+                      handleAnchorNavigation(event, item.url);
+                      closeMenu();
+                    }}
                     className="data-[state=open]:bg-muted flex items-center justify-between px-4 py-3 text-lg **:!font-normal"
                   >
                     {item.title}

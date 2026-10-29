@@ -41,6 +41,13 @@
           "trigger_webhook": "Webhook",
           "generate": "Generate n8n workflow",
           "generating": "Analyzing SOP",
+          "generating_eta": "Usually ready in 30–60 seconds. Keep this page open.",
+          "generating_elapsed": "{seconds}s elapsed",
+          "generating_statuses": [
+            "Detecting triggers and process owners",
+            "Mapping steps, conditions, and exception branches",
+            "Validating flow connectivity and deployment checks"
+          ],
           "privacy": "SOP text is used only for this model analysis, is not written to the business database, and credentials never enter the result",
           "preview": "Flow preview",
           "json": "Structured JSON",

@@ -6,6 +6,9 @@
 @plugin 'tailwindcss-animate';
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   * {
     @apply border-border outline-ring/50;
   }
@@ -160,6 +163,10 @@ pre {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .sop-node-enter {
     opacity: 1;
     transform: none;
