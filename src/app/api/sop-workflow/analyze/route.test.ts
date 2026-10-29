@@ -1,10 +1,16 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { EvolinkError } from '@/shared/lib/sop-workflow/evolink';
 import { SopAnalysisResponse } from '@/shared/lib/sop-workflow/schema';
 
 import { createAnalyzeHandler } from './route';
+
+test('allows the model request to outlive the provider timeout window', () => {
+  const source = readFileSync(new URL('./route.ts', import.meta.url), 'utf8');
+  assert.match(source, /export const maxDuration = 120;/);
+});
 
 const success: SopAnalysisResponse = {
   analysis: {

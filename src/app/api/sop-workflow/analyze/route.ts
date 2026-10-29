@@ -11,6 +11,8 @@ import {
   SOP_WORKFLOW_DEFAULT_LIMITS,
 } from '@/shared/models/sop_workflow_quota';
 
+export const maxDuration = 120;
+
 const AnalyzeRequestSchema = z.object({
   sop: z.string().trim().min(1).max(4000),
   locale: z.enum(['zh', 'en']),
