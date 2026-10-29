@@ -68,6 +68,7 @@ test('calls the configured EvoLink route with bounded JSON-only input', async ()
   const body = JSON.parse(String(request?.init.body));
   assert.equal(body.model, 'gemini-3.8-flash');
   assert.equal(body.max_tokens, 6000);
+  assert.equal(body.temperature, 0.1);
   assert.equal(body.response_format.type, 'json_object');
   assert.equal(result.meta.usage.totalTokens, 200);
   assert.equal(result.analysis.steps[0].id, 'done');
@@ -89,12 +90,19 @@ test('extracts JSON from a markdown fence', async () => {
 
 test('performs at most one repair request after invalid model JSON', async () => {
   let calls = 0;
+  let repairMessages: Array<{ role?: string; content?: string }> = [];
   const result = await analyzeSopWithEvolink(
     { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
     {
       apiKey: 'test-provider-key',
-      fetch: async () => {
+      fetch: async (_url, init) => {
         calls += 1;
+        if (calls === 2) {
+          const repairBody = JSON.parse(String(init?.body)) as {
+            messages?: Array<{ role?: string; content?: string }>;
+          };
+          repairMessages = repairBody.messages || [];
+        }
         return calls === 1
           ? response('{"schemaVersion":"1.0"}')
           : response(JSON.stringify(validAnalysis));
@@ -103,6 +111,10 @@ test('performs at most one repair request after invalid model JSON', async () =>
   );
   assert.equal(calls, 2);
   assert.equal(result.analysis.title, '测试');
+  assert.match(
+    repairMessages.at(-1)?.content || '',
+    /title|summary|trigger|actors|steps/
+  );
 });
 
 test('aborts provider work after the configured timeout', async () => {

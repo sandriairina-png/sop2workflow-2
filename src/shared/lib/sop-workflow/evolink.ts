@@ -85,6 +85,7 @@ async function requestProvider(
         model: config.model,
         messages,
         max_tokens: config.maxTokens,
+        temperature: 0.1,
         response_format: { type: 'json_object' },
       }),
       signal: controller.signal,
@@ -113,13 +114,37 @@ async function requestProvider(
 
 function parseAnalysis(payload: ProviderPayload) {
   const content = payload.choices?.[0]?.message?.content;
-  if (!content) throw new EvolinkError('invalid_output', 'Model output is empty.');
+  if (!content)
+    throw new EvolinkError('invalid_output', 'Model output is empty.');
+
+  let raw: unknown;
   try {
-    const parsed = SopAnalysisSchema.parse(JSON.parse(extractJson(content)));
-    return validateSopAnalysisGraph(parsed);
+    raw = JSON.parse(extractJson(content));
+  } catch {
+    throw new EvolinkError('invalid_output', 'The response is not valid JSON.');
+  }
+
+  const parsed = SopAnalysisSchema.safeParse(raw);
+  if (!parsed.success) {
+    const issues = parsed.error.issues
+      .slice(0, 12)
+      .map((issue) => `${issue.path.join('.') || 'root'}: ${issue.message}`)
+      .join('; ');
+    throw new EvolinkError(
+      'invalid_output',
+      `Schema validation failed: ${issues}`
+    );
+  }
+
+  try {
+    return validateSopAnalysisGraph(parsed.data);
   } catch (error) {
-    if (error instanceof EvolinkError) throw error;
-    throw new EvolinkError('invalid_output', 'Model output failed validation.');
+    throw new EvolinkError(
+      'invalid_output',
+      `Graph validation failed: ${
+        error instanceof Error ? error.message : 'unknown graph error'
+      }`
+    );
   }
 }
 
@@ -141,6 +166,7 @@ export async function analyzeSopWithEvolink(
 
   const messages = buildSopAnalysisMessages(input);
   const first = await requestProvider(messages, config);
+  let repairReason = 'The response did not match the required contract.';
   try {
     return {
       analysis: parseAnalysis(first),
@@ -155,6 +181,7 @@ export async function analyzeSopWithEvolink(
     if (!(error instanceof EvolinkError) || error.code !== 'invalid_output') {
       throw error;
     }
+    repairReason = error.message;
   }
 
   const invalidContent = first.choices?.[0]?.message?.content || '';
@@ -164,8 +191,7 @@ export async function analyzeSopWithEvolink(
       { role: 'assistant', content: invalidContent },
       {
         role: 'user',
-        content:
-          '上一个 JSON 不符合指定 schema 或图连通规则。只返回修复后的完整 JSON，不要解释。',
+        content: `上一个 JSON 不符合指定 schema 或图连通规则。校验错误：${repairReason}。请严格依据 system 消息中的 JSON 模板修复，补齐全部必填字段，并只返回完整 JSON。`,
       },
     ],
     config
@@ -186,4 +212,3 @@ export async function analyzeSopWithEvolink(
     },
   };
 }
-
