@@ -1,6 +1,37 @@
 import { ComponentType, lazy, Suspense } from 'react';
+import {
+  RiAddLine,
+  RiChat2Line,
+  RiDeleteBinLine,
+  RiDiscordFill,
+  RiEditLine,
+  RiEyeLine,
+  RiFlashlightFill,
+  RiKeyLine,
+  RiLockPasswordLine,
+  RiRefreshLine,
+  RiTaskLine,
+  RiTwitterXFill,
+} from 'react-icons/ri';
 
 const iconCache: { [key: string]: ComponentType<any> } = {};
+
+// Icons used by our content, imported statically so pages don't pull in the
+// whole react-icons/ri bundle. Other names still load lazily.
+const remixIcons: { [key: string]: ComponentType<any> } = {
+  RiAddLine,
+  RiChat2Line,
+  RiDeleteBinLine,
+  RiDiscordFill,
+  RiEditLine,
+  RiEyeLine,
+  RiFlashlightFill,
+  RiKeyLine,
+  RiLockPasswordLine,
+  RiRefreshLine,
+  RiTaskLine,
+  RiTwitterXFill,
+};
 
 // Function to automatically detect icon library
 function detectIconLibrary(name: string): 'ri' | 'lucide' {
@@ -24,6 +55,11 @@ export function SmartIcon({
 }) {
   const library = detectIconLibrary(name);
   const cacheKey = `${library}-${name}`;
+
+  const StaticIcon = library === 'ri' ? remixIcons[name] : undefined;
+  if (StaticIcon) {
+    return <StaticIcon size={size} className={className} {...props} />;
+  }
 
   if (!iconCache[cacheKey]) {
     if (library === 'ri') {
