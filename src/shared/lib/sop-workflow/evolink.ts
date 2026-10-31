@@ -16,7 +16,7 @@ export const EVOLINK_DEFAULT_URL =
   'https://direct.evolink.ai/v1/chat/completions';
 export const EVOLINK_DEFAULT_MODEL = 'gemini-3.8-flash';
 export const EVOLINK_DEFAULT_MAX_TOKENS = 6000;
-export const EVOLINK_SKELETON_MAX_TOKENS = 2200;
+export const EVOLINK_SKELETON_MAX_TOKENS = 4000;
 export const EVOLINK_DEFAULT_TIMEOUT_MS = 105_000;
 const SKELETON_TIMEOUT_MS = 30_000;
 const DETAIL_TIMEOUT_MS = 60_000;
@@ -82,7 +82,11 @@ async function requestProvider(
   config: Required<
     Pick<EvolinkDeps, 'apiKey' | 'apiUrl' | 'model' | 'maxTokens' | 'timeoutMs'>
   > & { fetch: FetchLike },
-  limits?: { maxTokens?: number; timeoutMs?: number }
+  limits?: {
+    maxTokens?: number;
+    timeoutMs?: number;
+    reasoningEffort?: 'low' | 'medium' | 'high';
+  }
 ) {
   const controller = new AbortController();
   const timeoutMs = limits?.timeoutMs || config.timeoutMs;
@@ -98,7 +102,7 @@ async function requestProvider(
         model: config.model,
         messages,
         max_tokens: limits?.maxTokens || config.maxTokens,
-        temperature: 0.1,
+        reasoning_effort: limits?.reasoningEffort || 'medium',
         response_format: { type: 'json_object' },
       }),
       signal: controller.signal,
@@ -217,6 +221,7 @@ export async function analyzeSopWithEvolink(
   let skeletonPayload = await requestProvider(skeletonMessages, config, {
     maxTokens: Math.min(EVOLINK_SKELETON_MAX_TOKENS, config.maxTokens),
     timeoutMs: remainingTimeout(deadline, SKELETON_TIMEOUT_MS),
+    reasoningEffort: 'low',
   });
   let skeletonUsage = usageOf(skeletonPayload);
   let skeleton: SopSkeleton;
@@ -239,6 +244,7 @@ export async function analyzeSopWithEvolink(
       {
         maxTokens: Math.min(EVOLINK_SKELETON_MAX_TOKENS, config.maxTokens),
         timeoutMs: remainingTimeout(deadline, SKELETON_TIMEOUT_MS),
+        reasoningEffort: 'low',
       }
     );
     skeletonPayload = repairedSkeleton;
@@ -249,6 +255,7 @@ export async function analyzeSopWithEvolink(
   const first = await requestProvider(messages, config, {
     maxTokens: config.maxTokens,
     timeoutMs: remainingTimeout(deadline, DETAIL_TIMEOUT_MS),
+    reasoningEffort: 'medium',
   });
   let repairReason = 'The response did not match the required contract.';
   try {
@@ -282,6 +289,7 @@ export async function analyzeSopWithEvolink(
     {
       maxTokens: config.maxTokens,
       timeoutMs: remainingTimeout(deadline, DETAIL_TIMEOUT_MS),
+      reasoningEffort: 'medium',
     }
   );
   const firstUsage = usageOf(first);

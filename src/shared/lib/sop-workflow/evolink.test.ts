@@ -106,7 +106,8 @@ test('calls the configured EvoLink route with bounded JSON-only input', async ()
   const body = JSON.parse(String(request?.init.body));
   assert.equal(body.model, 'gemini-3.8-flash');
   assert.equal(body.max_tokens, 6000);
-  assert.equal(body.temperature, 0.1);
+  assert.equal(body.temperature, undefined);
+  assert.equal(body.reasoning_effort, 'medium');
   assert.equal(body.response_format.type, 'json_object');
   assert.equal(result.meta.usage.totalTokens, 400);
   assert.equal(result.analysis.steps[0].id, 'done');
@@ -141,6 +142,10 @@ test('generates a compact skeleton before requesting node details', async () => 
 
   assert.equal(calls, 2);
   assert.ok(bodies[0].max_tokens < bodies[1].max_tokens);
+  assert.equal(
+    (bodies[0] as { reasoning_effort?: string }).reasoning_effort,
+    'low'
+  );
   const detailRequest = JSON.parse(bodies[1].messages.at(-1)?.content || '{}');
   assert.equal(detailRequest.task, 'enrich_erp_sop_skeleton');
   assert.equal(detailRequest.skeleton.steps[0].id, 'submit');
