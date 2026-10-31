@@ -107,14 +107,14 @@ test('calls the configured EvoLink route with bounded JSON-only input', async ()
   );
   const body = JSON.parse(String(request?.init.body));
   assert.equal(body.model, 'gemini-3.8-flash');
-  assert.equal(body.max_tokens, 5000);
+  assert.equal(body.max_tokens, 6000);
   assert.equal(body.temperature, undefined);
   assert.equal(body.reasoning_effort, 'low');
   assert.equal(body.response_format.type, 'json_object');
   assert.equal(result.meta.usage.totalTokens, 400);
   assert.equal(result.analysis.steps[0].id, 'done');
   assert.equal(EVOLINK_DEFAULT_MAX_TOKENS, 6000);
-  assert.equal(EVOLINK_DETAIL_MAX_TOKENS, 5000);
+  assert.equal(EVOLINK_DETAIL_MAX_TOKENS, 6000);
   assert.equal(EVOLINK_DEFAULT_TIMEOUT_MS, 65_000);
 });
 

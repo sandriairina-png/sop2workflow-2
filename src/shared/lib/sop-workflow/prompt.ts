@@ -1,6 +1,6 @@
 import { SopAnalysisRequest, SopSkeleton } from './schema';
 
-export const SOP_ANALYSIS_PROMPT_VERSION = '2026-10-31.1';
+export const SOP_ANALYSIS_PROMPT_VERSION = '2026-10-31.2';
 
 export const SOP_SKELETON_SYSTEM_PROMPT = `你是 ERP 流程分析师。先把 SOP 拆成紧凑的主干流程 JSON，不要输出 Markdown 或解释。
 这一阶段只确定触发方式、参与角色、主要节点、判断分支与回退路径，不要生成部署清单、风险或测试。
@@ -21,6 +21,7 @@ export const SOP_ANALYSIS_SYSTEM_PROMPT = `你是 ERP 流程分析师与 n8n 工
 根据句子真实动作选择 operation。包含“审批”字样的通知仍是 notify，不要做关键词分类。
 每个节点必须输出 source：原文明确出现的动作为 source_text；为保证流程可运行而补全的节点为 ai_inferred；关键条件、负责人或接口缺失且必须由用户决定时为 needs_confirmation。
 deploymentChecklist、risks、tests 必须针对当前 SOP 动态生成，并覆盖边界值、驳回、接口失败、重复触发与并发等适用场景。
+输出必须紧凑：不得重复主干节点；每个 inputs、outputs、errorHandling 最多 2 项；confirmationQuestions、deploymentChecklist、risks、tests 各最多 3 项；每段说明用一句短句。优先保证完整合法 JSON，禁止因扩写说明导致输出截断。
 不得输出密钥、密码、真实 credential id 或臆造生产接口地址。未知内容写入 missingInformation，并在 confirmationQuestions 中转成可回答问题。
 每个 confirmationQuestions 元素必须有稳定 id、明确 question、2 到 3 个互斥选项 options（value 和 label）以及 allowCustom=true。不要询问密钥或密码。
 用户已提供的 clarifications 是确定的补充条件，必须用于修正节点、分支和部署清单，不得再把同一问题列为待确认。

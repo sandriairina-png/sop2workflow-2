@@ -17,10 +17,10 @@ export const EVOLINK_DEFAULT_URL =
 export const EVOLINK_DEFAULT_MODEL = 'gemini-3.8-flash';
 export const EVOLINK_DEFAULT_MAX_TOKENS = 6000;
 export const EVOLINK_SKELETON_MAX_TOKENS = 4000;
-export const EVOLINK_DETAIL_MAX_TOKENS = 5000;
+export const EVOLINK_DETAIL_MAX_TOKENS = 6000;
 export const EVOLINK_DEFAULT_TIMEOUT_MS = 65_000;
-const SKELETON_TIMEOUT_MS = 25_000;
-const DETAIL_TIMEOUT_MS = 38_000;
+const SKELETON_TIMEOUT_MS = 23_000;
+const DETAIL_TIMEOUT_MS = 40_000;
 
 export class EvolinkError extends Error {
   constructor(
