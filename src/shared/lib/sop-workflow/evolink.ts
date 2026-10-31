@@ -3,13 +3,16 @@ import {
   buildSopDetailMessages,
   buildSopSkeletonMessages,
   SOP_ANALYSIS_PROMPT_VERSION,
+  SOP_SKELETON_COMPACT_RETRY_PROMPT,
 } from './prompt';
 import {
+  SopAnalysis,
   SopAnalysisRequest,
   SopAnalysisResponse,
   SopAnalysisSchema,
   SopSkeleton,
   SopSkeletonSchema,
+  SopStepSourceSchema,
 } from './schema';
 
 export const EVOLINK_DEFAULT_URL =
@@ -49,7 +52,7 @@ type EvolinkDeps = {
 
 type ProviderPayload = {
   id?: string;
-  choices?: Array<{ message?: { content?: string } }>;
+  choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
   usage?: {
     prompt_tokens?: number;
     completion_tokens?: number;
@@ -65,6 +68,10 @@ function extractJson(content: string) {
   return start >= 0 && end > start
     ? candidate.slice(start, end + 1)
     : candidate;
+}
+
+function outputDiagnostics(payload: ProviderPayload) {
+  return ` (finish_reason=${payload.choices?.[0]?.finish_reason || 'unknown'}, completion_tokens=${payload.usage?.completion_tokens ?? 'unknown'})`;
 }
 
 function usageOf(payload: ProviderPayload) {
@@ -234,8 +241,10 @@ function normalizeSkeleton(raw: unknown) {
         const record = step as Record<string, unknown>;
         const operation = normalizedOperation(record.operation, record.title);
         const connections = Array.isArray(record.next) ? record.next : [];
+        const source = SopStepSourceSchema.safeParse(record.source);
         return {
           ...record,
+          source: source.success ? source.data : undefined,
           operation,
           next: connections.map((connection, index) => {
             const next = connection as Record<string, unknown>;
@@ -243,12 +252,17 @@ function normalizeSkeleton(raw: unknown) {
               next.condition && typeof next.condition === 'object'
                 ? (next.condition as Record<string, unknown>)
                 : undefined;
+            const explanation = String(
+              condition?.explanation || next.label || ''
+            );
             return {
               ...next,
               ...(condition
                 ? {
                     condition: {
                       ...condition,
+                      leftValue: condition.leftValue || explanation,
+                      explanation,
                       operator: normalizedOperator(condition.operator),
                     },
                   }
@@ -294,7 +308,7 @@ function parseSkeleton(payload: ProviderPayload) {
     if (error instanceof EvolinkError) throw error;
     throw new EvolinkError(
       'invalid_output',
-      'The skeleton response is not valid JSON.'
+      `The skeleton response is not valid JSON.${outputDiagnostics(payload)}`
     );
   }
 }
@@ -316,7 +330,10 @@ function parseAnalysis(payload: ProviderPayload) {
   try {
     raw = JSON.parse(extractJson(content));
   } catch {
-    throw new EvolinkError('invalid_output', 'The response is not valid JSON.');
+    throw new EvolinkError(
+      'invalid_output',
+      `The response is not valid JSON.${outputDiagnostics(payload)}`
+    );
   }
 
   const parsed = SopAnalysisSchema.safeParse(raw);
@@ -360,105 +377,137 @@ export async function analyzeSopWithEvolink(
   }
 
   const deadline = Date.now() + config.timeoutMs;
+  let usage = usageOf({});
   const skeletonMessages = buildSopSkeletonMessages(input);
-  let skeletonPayload = await requestProvider(skeletonMessages, config, {
+  const skeletonLimits = () => ({
     maxTokens: Math.min(EVOLINK_SKELETON_MAX_TOKENS, config.maxTokens),
     timeoutMs: remainingTimeout(deadline, SKELETON_TIMEOUT_MS),
-    reasoningEffort: 'low',
+    reasoningEffort: 'low' as const,
   });
-  let skeletonUsage = usageOf(skeletonPayload);
   let skeleton: SopSkeleton;
   try {
-    skeleton = parseSkeleton(skeletonPayload);
+    const payload = await requestProvider(
+      skeletonMessages,
+      config,
+      skeletonLimits()
+    );
+    usage = addUsage(usage, usageOf(payload));
+    skeleton = parseSkeleton(payload);
   } catch (error) {
-    if (!(error instanceof EvolinkError) || error.code !== 'invalid_output') {
+    if (!(error instanceof EvolinkError) || error.code === 'not_configured') {
       throw error;
     }
-    const repairedSkeleton = await requestProvider(
+    // Retrying with the same budget fails the same way, so ask for a smaller outline.
+    console.warn('sop_workflow_skeleton_retry', {
+      code: error.code,
+      reason: error.message,
+    });
+    const payload = await requestProvider(
       [
         ...skeletonMessages,
+        { role: 'user', content: SOP_SKELETON_COMPACT_RETRY_PROMPT },
+      ],
+      config,
+      skeletonLimits()
+    );
+    usage = addUsage(usage, usageOf(payload));
+    skeleton = parseSkeleton(payload);
+  }
+
+  const meta = (requestId: string | undefined) => ({
+    model: config.model,
+    promptVersion: SOP_ANALYSIS_PROMPT_VERSION,
+    requestId: requestId || crypto.randomUUID(),
+    usage,
+  });
+  const messages = buildSopDetailMessages(input, skeleton);
+  const detailLimits = () => ({
+    maxTokens: Math.min(EVOLINK_DETAIL_MAX_TOKENS, config.maxTokens),
+    timeoutMs: remainingTimeout(deadline, DETAIL_TIMEOUT_MS),
+    reasoningEffort: 'low' as const,
+  });
+  try {
+    const first = await requestProvider(messages, config, detailLimits());
+    usage = addUsage(usage, usageOf(first));
+    let repairReason: string;
+    try {
+      return { analysis: parseAnalysis(first), meta: meta(first.id) };
+    } catch (error) {
+      if (!(error instanceof EvolinkError) || error.code !== 'invalid_output') {
+        throw error;
+      }
+      repairReason = error.message;
+    }
+
+    const repaired = await requestProvider(
+      [
+        ...messages,
+        {
+          role: 'assistant',
+          content: first.choices?.[0]?.message?.content || '',
+        },
         {
           role: 'user',
-          content:
-            '上一个主干结果不是可解析的 JSON。请只返回完整 JSON 对象，必须包含 schemaVersion、title、summary、trigger、actors、steps；不要解释、不要 Markdown、不要代码围栏。',
+          content: `上一个 JSON 不符合指定 schema 或图连通规则。校验错误：${repairReason}。请严格依据 system 消息中的 JSON 模板修复，补齐全部必填字段，并只返回完整 JSON。`,
         },
       ],
       config,
-      {
-        maxTokens: Math.min(EVOLINK_SKELETON_MAX_TOKENS, config.maxTokens),
-        timeoutMs: remainingTimeout(deadline, SKELETON_TIMEOUT_MS),
-        reasoningEffort: 'low',
-      }
+      detailLimits()
     );
-    skeletonPayload = repairedSkeleton;
-    skeletonUsage = addUsage(skeletonUsage, usageOf(repairedSkeleton));
-    skeleton = parseSkeleton(repairedSkeleton);
-  }
-  const messages = buildSopDetailMessages(input, skeleton);
-  const first = await requestProvider(messages, config, {
-    maxTokens: Math.min(EVOLINK_DETAIL_MAX_TOKENS, config.maxTokens),
-    timeoutMs: remainingTimeout(deadline, DETAIL_TIMEOUT_MS),
-    reasoningEffort: 'low',
-  });
-  let repairReason = 'The response did not match the required contract.';
-  try {
+    usage = addUsage(usage, usageOf(repaired));
     return {
-      analysis: parseAnalysis(first),
-      meta: {
-        model: config.model,
-        promptVersion: SOP_ANALYSIS_PROMPT_VERSION,
-        requestId: first.id || crypto.randomUUID(),
-        usage: addUsage(skeletonUsage, usageOf(first)),
-      },
+      analysis: parseAnalysis(repaired),
+      meta: meta(repaired.id || first.id),
     };
   } catch (error) {
-    if (!(error instanceof EvolinkError) || error.code !== 'invalid_output') {
-      throw error;
-    }
-    repairReason = error.message;
+    if (!(error instanceof EvolinkError)) throw error;
+    // The skeleton is already a valid workflow; return it rather than failing the whole request.
+    const outline = analysisFromSkeleton(skeleton, input.locale);
+    if (!outline) throw error;
+    console.warn('sop_workflow_detail_fallback', {
+      code: error.code,
+      reason: error.message,
+    });
+    return {
+      analysis: outline,
+      meta: { ...meta(undefined), detailsIncomplete: true },
+    };
   }
+}
 
-  const invalidContent = first.choices?.[0]?.message?.content || '';
-  const repaired = await requestProvider(
-    [
-      ...messages,
-      { role: 'assistant', content: invalidContent },
-      {
-        role: 'user',
-        content: `上一个 JSON 不符合指定 schema 或图连通规则。校验错误：${repairReason}。请严格依据 system 消息中的 JSON 模板修复，补齐全部必填字段，并只返回完整 JSON。`,
-      },
-    ],
-    config,
-    {
-      maxTokens: Math.min(EVOLINK_DETAIL_MAX_TOKENS, config.maxTokens),
-      timeoutMs: remainingTimeout(deadline, DETAIL_TIMEOUT_MS),
-      reasoningEffort: 'low',
-    }
-  );
-  const firstUsage = usageOf(first);
-  const repairUsage = usageOf(repaired);
-  return {
-    analysis: parseAnalysis(repaired),
-    meta: {
-      model: config.model,
-      promptVersion: SOP_ANALYSIS_PROMPT_VERSION,
-      requestId: repaired.id || first.id || crypto.randomUUID(),
-      usage: {
-        inputTokens:
-          skeletonUsage.inputTokens +
-          firstUsage.inputTokens +
-          repairUsage.inputTokens,
-        outputTokens:
-          skeletonUsage.outputTokens +
-          firstUsage.outputTokens +
-          repairUsage.outputTokens,
-        totalTokens:
-          skeletonUsage.totalTokens +
-          firstUsage.totalTokens +
-          repairUsage.totalTokens,
-      },
-    },
-  };
+function analysisFromSkeleton(
+  skeleton: SopSkeleton,
+  locale: SopAnalysisRequest['locale']
+): SopAnalysis | undefined {
+  const zh = locale === 'zh';
+  try {
+    return validateSopAnalysisGraph({
+      ...skeleton,
+      steps: skeleton.steps.map(({ source, ...step }) => ({
+        ...step,
+        source: source || 'ai_inferred',
+        inputs: [],
+        outputs: [],
+        errorHandling: [],
+      })),
+      assumptions: [],
+      missingInformation: [
+        zh
+          ? '节点负责人、输入输出与异常处理尚未补全，可重新生成以补全细节。'
+          : 'Owners, inputs, outputs and error handling are not filled in yet. Regenerate to complete them.',
+      ],
+      confirmationQuestions: [],
+      deploymentChecklist: [
+        zh
+          ? '导入 n8n 后，为每个系统节点配置凭证与字段映射。'
+          : 'After importing into n8n, configure credentials and field mappings for each system node.',
+      ],
+      risks: [],
+      tests: [],
+    });
+  } catch {
+    return undefined;
+  }
 }
 
 function addUsage(

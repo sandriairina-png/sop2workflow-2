@@ -129,6 +129,7 @@ export const SopSkeletonSchema = z.object({
         id: z.string().min(1),
         title: z.string().min(1),
         description: z.string().min(1),
+        source: SopStepSourceSchema.optional(),
         operation: z.enum([
           'read',
           'transform',
@@ -206,6 +207,7 @@ export type SopAnalysisResponse = {
     model: string;
     promptVersion: string;
     requestId: string;
+    detailsIncomplete?: boolean;
     usage: {
       inputTokens: number;
       outputTokens: number;

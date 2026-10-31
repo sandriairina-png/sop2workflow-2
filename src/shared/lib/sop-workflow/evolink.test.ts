@@ -328,3 +328,97 @@ test('aborts provider work after the configured timeout', async () => {
     /timeout/i
   );
 });
+
+const routableSkeleton = {
+  ...validSkeleton,
+  steps: [
+    {
+      id: 'submit',
+      title: '提交报销',
+      description: '提交金额与凭证',
+      source: 'source_text',
+      operation: 'write',
+      next: [{ targetStepId: 'done', label: '提交完成', branch: 'default' }],
+    },
+    {
+      id: 'done',
+      title: '完成',
+      description: '结束流程',
+      operation: 'end',
+      next: [],
+    },
+  ],
+};
+
+function truncated(content: string) {
+  return new Response(
+    JSON.stringify({
+      choices: [{ message: { content }, finish_reason: 'length' }],
+      usage: { prompt_tokens: 120, completion_tokens: 4000 },
+    }),
+    { status: 200, headers: { 'content-type': 'application/json' } }
+  );
+}
+
+test('retries a truncated skeleton with a compact outline request', async () => {
+  let calls = 0;
+  let retryPrompt = '';
+  const result = await analyzeSopWithEvolink(
+    { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
+    {
+      apiKey: 'test-provider-key',
+      fetch: async (_url, init) => {
+        calls += 1;
+        if (calls === 1) return truncated('{"schemaVersion":"1.0","steps":[');
+        if (calls === 2) {
+          retryPrompt = JSON.parse(String(init?.body)).messages.at(-1).content;
+          return response(JSON.stringify(validSkeleton));
+        }
+        return response(JSON.stringify(validAnalysis));
+      },
+    }
+  );
+  assert.equal(calls, 3);
+  assert.match(retryPrompt, /不超过 10 个/);
+  assert.equal(result.analysis.title, '测试');
+  assert.equal(result.meta.detailsIncomplete, undefined);
+});
+
+test('reports finish_reason when both skeleton attempts are unusable', async () => {
+  await assert.rejects(
+    analyzeSopWithEvolink(
+      { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
+      {
+        apiKey: 'test-provider-key',
+        fetch: async () => truncated('{"schemaVersion":"1.0","steps":['),
+      }
+    ),
+    /finish_reason=length, completion_tokens=4000/
+  );
+});
+
+test('returns the validated skeleton when detail generation keeps failing', async () => {
+  let calls = 0;
+  const result = await analyzeSopWithEvolink(
+    { sop: '提交报销。', locale: 'zh', triggerHint: 'manual' },
+    {
+      apiKey: 'test-provider-key',
+      fetch: async () => {
+        calls += 1;
+        if (calls === 1) return response(JSON.stringify(routableSkeleton));
+        return truncated('{"schemaVersion":"1.0","title":');
+      },
+    }
+  );
+  assert.equal(calls, 3);
+  assert.equal(result.meta.detailsIncomplete, true);
+  assert.equal(result.meta.usage.totalTokens, 200 + 4120 * 2);
+  assert.deepEqual(
+    result.analysis.steps.map((step) => [step.id, step.source]),
+    [
+      ['submit', 'source_text'],
+      ['done', 'ai_inferred'],
+    ]
+  );
+  assert.equal(result.analysis.missingInformation.length, 1);
+});

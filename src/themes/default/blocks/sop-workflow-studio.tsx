@@ -109,12 +109,16 @@ type StudioCopy = {
   error_empty?: string;
   error_origin?: string;
   error_busy?: string;
+  error_too_frequent?: string;
+  error_daily_limit?: string;
   error_config?: string;
   error_timeout?: string;
   error_invalid_output?: string;
   error_provider?: string;
   error_generic?: string;
   retry?: string;
+  details_incomplete?: string;
+  complete_details?: string;
   local_session?: string;
   awaiting?: string;
   validate?: string;
@@ -249,9 +253,9 @@ export function SopWorkflowStudio({
         const messages: Record<string, string | undefined> = {
           invalid_origin: copy.error_origin,
           busy: copy.error_busy,
-          too_frequent: copy.error_busy,
-          client_daily_limit: copy.error_busy,
-          global_daily_limit: copy.error_busy,
+          too_frequent: copy.error_too_frequent || copy.error_busy,
+          client_daily_limit: copy.error_daily_limit || copy.error_busy,
+          global_daily_limit: copy.error_daily_limit || copy.error_busy,
           not_configured: copy.error_config,
           provider_timeout: copy.error_timeout,
           invalid_output: copy.error_invalid_output,
@@ -779,6 +783,22 @@ export function SopWorkflowStudio({
                     <p className="mt-2 text-xs text-white/40">
                       {validatedAnalysis?.summary}
                     </p>
+                    {result.meta.detailsIncomplete ? (
+                      <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-[#f5c46b]/25 bg-[#f5c46b]/[0.06] px-4 py-2.5 text-[11px] text-[#f5d9a3]">
+                        <span>
+                          {copy.details_incomplete ||
+                            'The main workflow is ready. Node details were not completed this time.'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void generate()}
+                          disabled={busy}
+                          className="rounded-full border border-[#f5c46b]/35 px-3 py-1 font-medium text-[#ffe2ad] transition hover:bg-[#f5c46b]/10 disabled:opacity-50"
+                        >
+                          {copy.complete_details || 'Complete details'}
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                   <span className="rounded-full border border-white/10 bg-black/20 px-4 py-2 text-[10px] text-white/45">
                     {validatedAnalysis?.steps.length} {copy.nodes}
