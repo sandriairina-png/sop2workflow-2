@@ -4,7 +4,10 @@ import test from 'node:test';
 import { SopAnalysis } from '@/shared/lib/sop-workflow';
 
 import {
+  buildClarificationAnswers,
   buildWorkflowGraphRows,
+  getStepSourceBadge,
+  resolveWorkflowError,
   validateAnalysisDraft,
 } from './sop-workflow-studio-model';
 
@@ -19,6 +22,7 @@ const analysis: SopAnalysis = {
       id: 'check',
       title: '检查库存',
       description: '读取数量',
+      source: 'source_text',
       operation: 'condition',
       inputs: [],
       outputs: [],
@@ -52,6 +56,7 @@ const analysis: SopAnalysis = {
       id: 'enough',
       title: '通知仓库',
       description: '继续履约',
+      source: 'ai_inferred',
       operation: 'notify',
       inputs: [],
       outputs: [],
@@ -62,6 +67,7 @@ const analysis: SopAnalysis = {
       id: 'buy',
       title: '通知采购',
       description: '发起补货',
+      source: 'needs_confirmation',
       operation: 'notify',
       inputs: [],
       outputs: [],
@@ -71,6 +77,7 @@ const analysis: SopAnalysis = {
   ],
   assumptions: [],
   missingInformation: [],
+  confirmationQuestions: [],
   deploymentChecklist: [],
   risks: [],
   tests: [],
@@ -94,5 +101,88 @@ test('accepts a valid edited analysis and rejects broken references', () => {
   assert.throws(
     () => validateAnalysisDraft(JSON.stringify(broken)),
     /unknown step/
+  );
+});
+
+test('turns provider failures into a retryable user-facing state', () => {
+  const result = resolveWorkflowError('provider_timeout', {
+    fallback: '生成失败',
+    timeout: '这份 SOP 较复杂，本次分析未在规定时间内完成。',
+    provider: '模型服务暂时不可用。',
+  });
+
+  assert.deepEqual(result, {
+    message: '这份 SOP 较复杂，本次分析未在规定时间内完成。',
+    retryable: true,
+  });
+  assert.deepEqual(
+    resolveWorkflowError('transport_error', {
+      fallback: '生成失败',
+      timeout: '超时',
+      provider: '模型服务暂时不可用。',
+    }),
+    { message: '模型服务暂时不可用。', retryable: true }
+  );
+  assert.equal(
+    resolveWorkflowError('invalid_request', {
+      fallback: '生成失败',
+      timeout: '超时',
+      provider: '服务不可用',
+    }).retryable,
+    false
+  );
+});
+
+test('maps node provenance to a localized semantic badge', () => {
+  assert.deepEqual(
+    getStepSourceBadge('needs_confirmation', {
+      sourceText: '原文明确',
+      aiInferred: 'AI 推断',
+      needsConfirmation: '需用户确认',
+    }),
+    { label: '需用户确认', tone: 'warning' }
+  );
+});
+
+test('builds supplemental model conditions from selected and custom answers', () => {
+  const questions = [
+    {
+      id: 'threshold',
+      question: '财务总监审批阈值？',
+      options: [
+        { value: '5000', label: '5000 元' },
+        { value: '10000', label: '10000 元' },
+      ],
+      allowCustom: true,
+    },
+    {
+      id: 'reject_path',
+      question: '驳回后的处理方式？',
+      options: [
+        { value: 'resubmit', label: '补充后重提' },
+        { value: 'end', label: '结束流程' },
+      ],
+      allowCustom: true,
+    },
+  ];
+
+  assert.deepEqual(
+    buildClarificationAnswers(
+      questions,
+      { threshold: '5000', reject_path: '__custom__' },
+      { reject_path: '驳回原节点修改后重新提交' }
+    ),
+    [
+      {
+        questionId: 'threshold',
+        question: '财务总监审批阈值？',
+        answer: '5000 元',
+      },
+      {
+        questionId: 'reject_path',
+        question: '驳回后的处理方式？',
+        answer: '驳回原节点修改后重新提交',
+      },
+    ]
   );
 });

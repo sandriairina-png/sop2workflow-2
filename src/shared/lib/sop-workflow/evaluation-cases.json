@@ -4,7 +4,7 @@
     "category": "implicit condition omission",
     "fixtureId": "inventoryBranch",
     "model": "gemini-3.8-flash",
-    "promptVersion": "2026-10-29.1",
+    "promptVersion": "2026-10-31.1",
     "expected": {
       "trigger": "schedule",
       "minBranches": 2,
@@ -19,7 +19,7 @@
     "category": "parallel work serialized",
     "fixtureId": "inventoryBranch",
     "model": "gemini-3.8-flash",
-    "promptVersion": "2026-10-29.1",
+    "promptVersion": "2026-10-31.1",
     "expected": {
       "trigger": "schedule",
       "minBranches": 2,
@@ -34,7 +34,7 @@
     "category": "actor confusion",
     "fixtureId": "rejectionNotice",
     "model": "gemini-3.8-flash",
-    "promptVersion": "2026-10-29.1",
+    "promptVersion": "2026-10-31.1",
     "expected": {
       "trigger": "manual",
       "minBranches": 2,
@@ -49,7 +49,7 @@
     "category": "approval keyword misclassification",
     "fixtureId": "expenseBoundary",
     "model": "gemini-3.8-flash",
-    "promptVersion": "2026-10-29.1",
+    "promptVersion": "2026-10-31.1",
     "expected": {
       "trigger": "manual",
       "minBranches": 2,
@@ -64,7 +64,7 @@
     "category": "missing rejection path",
     "fixtureId": "rejectionNotice",
     "model": "gemini-3.8-flash",
-    "promptVersion": "2026-10-29.1",
+    "promptVersion": "2026-10-31.1",
     "expected": {
       "trigger": "manual",
       "minBranches": 2,
@@ -79,7 +79,7 @@
     "category": "fixed deployment copy",
     "fixtureId": "missingIntegration",
     "model": "gemini-3.8-flash",
-    "promptVersion": "2026-10-29.1",
+    "promptVersion": "2026-10-31.1",
     "expected": {
       "trigger": "manual",
       "minBranches": 0,
@@ -94,7 +94,7 @@
     "category": "empty Code-node export",
     "fixtureId": "commaSeparated",
     "model": "gemini-3.8-flash",
-    "promptVersion": "2026-10-29.1",
+    "promptVersion": "2026-10-31.1",
     "expected": {
       "trigger": "manual",
       "minBranches": 0,

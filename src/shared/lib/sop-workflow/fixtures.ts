@@ -18,6 +18,7 @@ function base(
     steps,
     assumptions: ['业务字段名称需与实际 ERP 返回值核对。'],
     missingInformation: ['真实接口地址与字段映射。'],
+    confirmationQuestions: [],
     deploymentChecklist: ['配置凭据', '用测试数据完成一次分支验收'],
     risks: [
       {
@@ -43,6 +44,7 @@ function step(
     id,
     title: extra.title || id,
     description: extra.description || id,
+    source: 'source_text',
     operation,
     inputs: [],
     outputs: [],

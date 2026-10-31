@@ -4,7 +4,10 @@ import {
   analyzeSopWithEvolink,
   EvolinkError,
 } from '@/shared/lib/sop-workflow/evolink';
-import { TriggerHintSchema } from '@/shared/lib/sop-workflow/schema';
+import {
+  SopClarificationSchema,
+  TriggerHintSchema,
+} from '@/shared/lib/sop-workflow/schema';
 import {
   consumeSopWorkflowQuota,
   hashSopWorkflowClient,
@@ -17,6 +20,7 @@ const AnalyzeRequestSchema = z.object({
   sop: z.string().trim().min(1).max(4000),
   locale: z.enum(['zh', 'en']),
   triggerHint: TriggerHintSchema,
+  clarifications: z.array(SopClarificationSchema).max(20).optional(),
 });
 
 type Analyze = typeof analyzeSopWithEvolink;

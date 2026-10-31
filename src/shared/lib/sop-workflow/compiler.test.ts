@@ -10,6 +10,7 @@ function step(
   return {
     title: overrides.id,
     description: overrides.id,
+    source: 'source_text',
     inputs: [],
     outputs: [],
     next: [],
@@ -34,6 +35,7 @@ function analysis(steps: SopStep[]): SopAnalysis {
     steps,
     assumptions: [],
     missingInformation: [],
+    confirmationQuestions: [],
     deploymentChecklist: [],
     risks: [],
     tests: [],

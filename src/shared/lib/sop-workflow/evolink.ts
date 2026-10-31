@@ -1,19 +1,24 @@
 import { validateSopAnalysisGraph } from './graph';
 import {
-  buildSopAnalysisMessages,
+  buildSopDetailMessages,
+  buildSopSkeletonMessages,
   SOP_ANALYSIS_PROMPT_VERSION,
 } from './prompt';
 import {
   SopAnalysisRequest,
   SopAnalysisResponse,
   SopAnalysisSchema,
+  SopSkeletonSchema,
 } from './schema';
 
 export const EVOLINK_DEFAULT_URL =
   'https://direct.evolink.ai/v1/chat/completions';
 export const EVOLINK_DEFAULT_MODEL = 'gemini-3.8-flash';
 export const EVOLINK_DEFAULT_MAX_TOKENS = 6000;
-export const EVOLINK_DEFAULT_TIMEOUT_MS = 45_000;
+export const EVOLINK_SKELETON_MAX_TOKENS = 2200;
+export const EVOLINK_DEFAULT_TIMEOUT_MS = 105_000;
+const SKELETON_TIMEOUT_MS = 30_000;
+const DETAIL_TIMEOUT_MS = 60_000;
 
 export class EvolinkError extends Error {
   constructor(
@@ -70,10 +75,12 @@ async function requestProvider(
   messages: Array<{ role: string; content: string }>,
   config: Required<
     Pick<EvolinkDeps, 'apiKey' | 'apiUrl' | 'model' | 'maxTokens' | 'timeoutMs'>
-  > & { fetch: FetchLike }
+  > & { fetch: FetchLike },
+  limits?: { maxTokens?: number; timeoutMs?: number }
 ) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
+  const timeoutMs = limits?.timeoutMs || config.timeoutMs;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await config.fetch(config.apiUrl, {
       method: 'POST',
@@ -84,7 +91,7 @@ async function requestProvider(
       body: JSON.stringify({
         model: config.model,
         messages,
-        max_tokens: config.maxTokens,
+        max_tokens: limits?.maxTokens || config.maxTokens,
         temperature: 0.1,
         response_format: { type: 'json_object' },
       }),
@@ -110,6 +117,29 @@ async function requestProvider(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function parseSkeleton(payload: ProviderPayload) {
+  const content = payload.choices?.[0]?.message?.content;
+  if (!content)
+    throw new EvolinkError('invalid_output', 'Model skeleton is empty.');
+
+  try {
+    return SopSkeletonSchema.parse(JSON.parse(extractJson(content)));
+  } catch {
+    throw new EvolinkError(
+      'invalid_output',
+      'Model skeleton does not match the required contract.'
+    );
+  }
+}
+
+function remainingTimeout(deadline: number, phaseLimit: number) {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) {
+    throw new EvolinkError('timeout', 'EvoLink request timeout.');
+  }
+  return Math.max(1, Math.min(phaseLimit, remaining));
 }
 
 function parseAnalysis(payload: ProviderPayload) {
@@ -164,8 +194,21 @@ export async function analyzeSopWithEvolink(
     throw new EvolinkError('not_configured', 'EvoLink is not configured.');
   }
 
-  const messages = buildSopAnalysisMessages(input);
-  const first = await requestProvider(messages, config);
+  const deadline = Date.now() + config.timeoutMs;
+  const skeletonPayload = await requestProvider(
+    buildSopSkeletonMessages(input),
+    config,
+    {
+      maxTokens: Math.min(EVOLINK_SKELETON_MAX_TOKENS, config.maxTokens),
+      timeoutMs: remainingTimeout(deadline, SKELETON_TIMEOUT_MS),
+    }
+  );
+  const skeleton = parseSkeleton(skeletonPayload);
+  const messages = buildSopDetailMessages(input, skeleton);
+  const first = await requestProvider(messages, config, {
+    maxTokens: config.maxTokens,
+    timeoutMs: remainingTimeout(deadline, DETAIL_TIMEOUT_MS),
+  });
   let repairReason = 'The response did not match the required contract.';
   try {
     return {
@@ -174,7 +217,7 @@ export async function analyzeSopWithEvolink(
         model: config.model,
         promptVersion: SOP_ANALYSIS_PROMPT_VERSION,
         requestId: first.id || crypto.randomUUID(),
-        usage: usageOf(first),
+        usage: addUsage(usageOf(skeletonPayload), usageOf(first)),
       },
     };
   } catch (error) {
@@ -194,8 +237,13 @@ export async function analyzeSopWithEvolink(
         content: `上一个 JSON 不符合指定 schema 或图连通规则。校验错误：${repairReason}。请严格依据 system 消息中的 JSON 模板修复，补齐全部必填字段，并只返回完整 JSON。`,
       },
     ],
-    config
+    config,
+    {
+      maxTokens: config.maxTokens,
+      timeoutMs: remainingTimeout(deadline, DETAIL_TIMEOUT_MS),
+    }
   );
+  const skeletonUsage = usageOf(skeletonPayload);
   const firstUsage = usageOf(first);
   const repairUsage = usageOf(repaired);
   return {
@@ -205,10 +253,30 @@ export async function analyzeSopWithEvolink(
       promptVersion: SOP_ANALYSIS_PROMPT_VERSION,
       requestId: repaired.id || first.id || crypto.randomUUID(),
       usage: {
-        inputTokens: firstUsage.inputTokens + repairUsage.inputTokens,
-        outputTokens: firstUsage.outputTokens + repairUsage.outputTokens,
-        totalTokens: firstUsage.totalTokens + repairUsage.totalTokens,
+        inputTokens:
+          skeletonUsage.inputTokens +
+          firstUsage.inputTokens +
+          repairUsage.inputTokens,
+        outputTokens:
+          skeletonUsage.outputTokens +
+          firstUsage.outputTokens +
+          repairUsage.outputTokens,
+        totalTokens:
+          skeletonUsage.totalTokens +
+          firstUsage.totalTokens +
+          repairUsage.totalTokens,
       },
     },
+  };
+}
+
+function addUsage(
+  first: ReturnType<typeof usageOf>,
+  second: ReturnType<typeof usageOf>
+) {
+  return {
+    inputTokens: first.inputTokens + second.inputTokens,
+    outputTokens: first.outputTokens + second.outputTokens,
+    totalTokens: first.totalTokens + second.totalTokens,
   };
 }

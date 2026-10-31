@@ -18,6 +18,7 @@ const validAnalysis = {
       id: 'done',
       title: '完成',
       description: '完成',
+      source: 'source_text',
       operation: 'end',
       inputs: [],
       outputs: [],
@@ -27,9 +28,42 @@ const validAnalysis = {
   ],
   assumptions: [],
   missingInformation: [],
+  confirmationQuestions: [],
   deploymentChecklist: [],
   risks: [],
   tests: [],
+};
+
+const validSkeleton = {
+  schemaVersion: '1.0',
+  title: '报销审批',
+  summary: '按金额分级审批，驳回后可重新提交。',
+  trigger: { type: 'manual', description: '员工提交报销申请' },
+  actors: [
+    { id: 'employee', name: '员工', responsibility: '提交和补充报销材料' },
+  ],
+  steps: [
+    {
+      id: 'submit',
+      title: '提交报销',
+      description: '提交金额与凭证',
+      operation: 'write',
+      next: [
+        {
+          targetStepId: 'review',
+          label: '进入审批',
+          branch: 'default',
+        },
+      ],
+    },
+    {
+      id: 'review',
+      title: '审批',
+      description: '按金额进入对应审批路径',
+      operation: 'condition',
+      next: [],
+    },
+  ],
 };
 
 function response(content: string) {
@@ -49,13 +83,17 @@ function response(content: string) {
 
 test('calls the configured EvoLink route with bounded JSON-only input', async () => {
   let request: { url: string; init: RequestInit } | undefined;
+  let calls = 0;
   const result = await analyzeSopWithEvolink(
     { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
     {
       apiKey: 'test-provider-key',
       fetch: async (url, init) => {
+        calls += 1;
         request = { url: String(url), init: init || {} };
-        return response(JSON.stringify(validAnalysis));
+        return response(
+          JSON.stringify(calls === 1 ? validSkeleton : validAnalysis)
+        );
       },
     }
   );
@@ -70,19 +108,58 @@ test('calls the configured EvoLink route with bounded JSON-only input', async ()
   assert.equal(body.max_tokens, 6000);
   assert.equal(body.temperature, 0.1);
   assert.equal(body.response_format.type, 'json_object');
-  assert.equal(result.meta.usage.totalTokens, 200);
+  assert.equal(result.meta.usage.totalTokens, 400);
   assert.equal(result.analysis.steps[0].id, 'done');
   assert.equal(EVOLINK_DEFAULT_MAX_TOKENS, 6000);
-  assert.equal(EVOLINK_DEFAULT_TIMEOUT_MS, 45_000);
+  assert.equal(EVOLINK_DEFAULT_TIMEOUT_MS, 105_000);
+});
+
+test('generates a compact skeleton before requesting node details', async () => {
+  const bodies: Array<{
+    max_tokens: number;
+    messages: Array<{ role: string; content: string }>;
+  }> = [];
+  let calls = 0;
+
+  const result = await analyzeSopWithEvolink(
+    {
+      sop: '金额低于 5000 元由主管审批，否则由财务总监审批；驳回后补充材料重新提交。',
+      locale: 'zh',
+      triggerHint: 'manual',
+    },
+    {
+      apiKey: 'test-provider-key',
+      fetch: async (_url, init) => {
+        calls += 1;
+        bodies.push(JSON.parse(String(init?.body)));
+        return calls === 1
+          ? response(JSON.stringify(validSkeleton))
+          : response(JSON.stringify(validAnalysis));
+      },
+    }
+  );
+
+  assert.equal(calls, 2);
+  assert.ok(bodies[0].max_tokens < bodies[1].max_tokens);
+  const detailRequest = JSON.parse(bodies[1].messages.at(-1)?.content || '{}');
+  assert.equal(detailRequest.task, 'enrich_erp_sop_skeleton');
+  assert.equal(detailRequest.skeleton.steps[0].id, 'submit');
+  assert.equal(result.analysis.title, '测试');
+  assert.equal(result.meta.usage.totalTokens, 400);
 });
 
 test('extracts JSON from a markdown fence', async () => {
+  let calls = 0;
   const result = await analyzeSopWithEvolink(
     { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
     {
       apiKey: 'test-provider-key',
-      fetch: async () =>
-        response(`\`\`\`json\n${JSON.stringify(validAnalysis)}\n\`\`\``),
+      fetch: async () => {
+        calls += 1;
+        return calls === 1
+          ? response(JSON.stringify(validSkeleton))
+          : response(`\`\`\`json\n${JSON.stringify(validAnalysis)}\n\`\`\``);
+      },
     }
   );
   assert.equal(result.analysis.title, '测试');
@@ -97,19 +174,20 @@ test('performs at most one repair request after invalid model JSON', async () =>
       apiKey: 'test-provider-key',
       fetch: async (_url, init) => {
         calls += 1;
-        if (calls === 2) {
+        if (calls === 3) {
           const repairBody = JSON.parse(String(init?.body)) as {
             messages?: Array<{ role?: string; content?: string }>;
           };
           repairMessages = repairBody.messages || [];
         }
-        return calls === 1
+        if (calls === 1) return response(JSON.stringify(validSkeleton));
+        return calls === 2
           ? response('{"schemaVersion":"1.0"}')
           : response(JSON.stringify(validAnalysis));
       },
     }
   );
-  assert.equal(calls, 2);
+  assert.equal(calls, 3);
   assert.equal(result.analysis.title, '测试');
   assert.match(
     repairMessages.at(-1)?.content || '',

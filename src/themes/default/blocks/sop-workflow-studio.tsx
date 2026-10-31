@@ -5,6 +5,7 @@ import {
   ArrowUp,
   Check,
   CheckCircle2,
+  ChevronDown,
   Clipboard,
   Clock3,
   Download,
@@ -30,13 +31,17 @@ import {
   SOP_EXAMPLES,
   SopAnalysis,
   SopAnalysisResponse,
+  SopClarification,
   TriggerHint,
 } from '@/shared/lib/sop-workflow';
 import { cn } from '@/shared/lib/utils';
 import { Section } from '@/shared/types/blocks/landing';
 
 import {
+  buildClarificationAnswers,
   buildWorkflowGraphRows,
+  getStepSourceBadge,
+  resolveWorkflowError,
   validateAnalysisDraft,
 } from './sop-workflow-studio-model';
 import studioStyles from './sop-workflow-studio.module.css';
@@ -109,6 +114,7 @@ type StudioCopy = {
   error_invalid_output?: string;
   error_provider?: string;
   error_generic?: string;
+  retry?: string;
   local_session?: string;
   awaiting?: string;
   validate?: string;
@@ -119,6 +125,17 @@ type StudioCopy = {
   structured_json?: string;
   missing_information?: string;
   risks?: string;
+  source_text?: string;
+  ai_inferred?: string;
+  needs_confirmation?: string;
+  confirmation_title?: string;
+  confirmation_description?: string;
+  custom_answer?: string;
+  custom_answer_placeholder?: string;
+  apply_answers?: string;
+  answer_required?: string;
+  advanced?: string;
+  advanced_description?: string;
   benefits?: Array<{
     id: string;
     title: string;
@@ -146,11 +163,18 @@ export function SopWorkflowStudio({
   const [reviewConfirmed, setReviewConfirmed] = useState(false);
   const [draftIsValid, setDraftIsValid] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
-  const [activeTab, setActiveTab] = useState<'flow' | 'json' | 'setup'>('flow');
+  const [activeTab, setActiveTab] = useState<'flow' | 'setup'>('flow');
   const [busy, setBusy] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState('');
+  const [errorRetryable, setErrorRetryable] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [selectedAnswers, setSelectedAnswers] = useState<
+    Record<string, string>
+  >({});
+  const [customAnswers, setCustomAnswers] = useState<Record<string, string>>(
+    {}
+  );
 
   const workflow = useMemo(
     () => (validatedAnalysis ? compileN8nWorkflow(validatedAnalysis) : null),
@@ -195,14 +219,16 @@ export function SopWorkflowStudio({
     );
   }
 
-  async function generate() {
+  async function generate(clarifications: SopClarification[] = []) {
     if (!sop.trim()) {
       setError(copy.error_empty || 'Add an SOP before generating.');
+      setErrorRetryable(false);
       textareaRef.current?.focus();
       return;
     }
 
     setError('');
+    setErrorRetryable(false);
     setBusy(true);
     setReviewConfirmed(false);
     setDraftIsValid(false);
@@ -215,6 +241,7 @@ export function SopWorkflowStudio({
           sop: sop.trim(),
           locale: copy.language || 'en',
           triggerHint: mode,
+          clarifications,
         }),
       });
       const payload = await response.json();
@@ -231,11 +258,22 @@ export function SopWorkflowStudio({
           provider_error: copy.error_provider,
           internal_error: copy.error_generic,
         };
-        throw new Error(
-          messages[payload.error] ||
+        const presentation = resolveWorkflowError(String(payload.error), {
+          fallback:
             copy.error_generic ||
-            'Unable to analyze this SOP. Please try again.'
-        );
+            'Unable to analyze this SOP. Please try again.',
+          timeout:
+            copy.error_timeout ||
+            'This SOP took longer than expected to analyze.',
+          provider:
+            copy.error_provider ||
+            'The model service is temporarily unavailable.',
+          invalidOutput: copy.error_invalid_output,
+          byCode: messages,
+        });
+        setError(presentation.message);
+        setErrorRetryable(presentation.retryable);
+        return;
       }
       const next = payload as SopAnalysisResponse;
       setResult(next);
@@ -243,6 +281,8 @@ export function SopWorkflowStudio({
       setDraftIsValid(true);
       setAnalysisDraft(JSON.stringify(next.analysis, null, 2));
       setValidationMessage(copy.validated || 'Structure validated');
+      setSelectedAnswers({});
+      setCustomAnswers({});
       setActiveTab('flow');
       const reduceMotion = window.matchMedia(
         '(prefers-reduced-motion: reduce)'
@@ -255,13 +295,40 @@ export function SopWorkflowStudio({
           }),
         120
       );
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : 'Unable to generate.'
-      );
+    } catch {
+      const presentation = resolveWorkflowError('transport_error', {
+        fallback:
+          copy.error_generic || 'Unable to analyze this SOP. Please try again.',
+        timeout:
+          copy.error_timeout ||
+          'This SOP took longer than expected to analyze.',
+        provider:
+          copy.error_provider ||
+          'The model service is temporarily unavailable.',
+        invalidOutput: copy.error_invalid_output,
+      });
+      setError(presentation.message);
+      setErrorRetryable(presentation.retryable);
     } finally {
       setBusy(false);
     }
+  }
+
+  function applyClarifications() {
+    if (!validatedAnalysis) return;
+    const answers = buildClarificationAnswers(
+      validatedAnalysis.confirmationQuestions,
+      selectedAnswers,
+      customAnswers
+    );
+    if (!answers.length) {
+      setError(
+        copy.answer_required || 'Answer at least one question to continue.'
+      );
+      setErrorRetryable(false);
+      return;
+    }
+    void generate(answers);
   }
 
   function validateDraft() {
@@ -343,11 +410,6 @@ export function SopWorkflowStudio({
             (item) => `${item.name}: ${item.expected}`
           ),
           icon: CheckCircle2,
-        },
-        {
-          title: copy.missing_information || 'Missing information',
-          items: validatedAnalysis.missingInformation,
-          icon: FileInput,
         },
         {
           title: copy.risks || 'Risks and mitigations',
@@ -474,13 +536,14 @@ export function SopWorkflowStudio({
                     onChange={(event) => {
                       setSop(event.target.value);
                       setError('');
+                      setErrorRetryable(false);
                     }}
                     onKeyDown={(event) => {
                       if (
                         (event.metaKey || event.ctrlKey) &&
                         event.key === 'Enter'
                       )
-                        generate();
+                        void generate();
                     }}
                     placeholder={copy.placeholder}
                     className="scrollbar-hide h-full min-h-0 w-full resize-none border-0 bg-transparent px-6 pt-6 pb-24 text-base leading-8 text-white outline-none placeholder:text-white/36 md:h-auto md:min-h-56 md:px-8 md:pt-8 md:text-lg"
@@ -513,7 +576,7 @@ export function SopWorkflowStudio({
                     </div>
                     <button
                       type="button"
-                      onClick={generate}
+                      onClick={() => void generate()}
                       disabled={busy}
                       className="linearity-submit grid size-[29px] shrink-0 place-items-center rounded-full"
                       aria-label={copy.generate || 'Generate workflow'}
@@ -529,9 +592,22 @@ export function SopWorkflowStudio({
               </StarBorder>
 
               {error ? (
-                <p className="mt-3 text-sm text-[#ff9f9f]" role="alert">
-                  {error}
-                </p>
+                <div
+                  className="mt-3 flex flex-wrap items-center justify-center gap-3 text-sm text-[#ffb0b0]"
+                  role="alert"
+                >
+                  <span>{error}</span>
+                  {errorRetryable ? (
+                    <button
+                      type="button"
+                      onClick={() => void generate()}
+                      disabled={busy}
+                      className="rounded-full border border-[#ffb0b0]/35 px-3 py-1.5 text-[11px] font-medium text-[#ffd0d0] transition hover:border-[#ffb0b0]/60 hover:bg-[#ffb0b0]/10 disabled:opacity-50"
+                    >
+                      {copy.retry || '重新生成'}
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
 
               {busy ? (
@@ -574,6 +650,7 @@ export function SopWorkflowStudio({
                     onClick={() => {
                       setSop(example);
                       setError('');
+                      setErrorRetryable(false);
                       textareaRef.current?.focus();
                     }}
                     className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-[10px] text-white/48 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
@@ -625,7 +702,7 @@ export function SopWorkflowStudio({
               </span>
             </div>
             <div className="flex items-center gap-4">
-              {(['flow', 'json', 'setup'] as const).map((value) => (
+              {(['flow', 'setup'] as const).map((value) => (
                 <button
                   type="button"
                   key={value}
@@ -637,11 +714,7 @@ export function SopWorkflowStudio({
                       : 'border-transparent text-white/35 hover:text-white/65'
                   )}
                 >
-                  {value === 'flow'
-                    ? copy.preview
-                    : value === 'json'
-                      ? copy.json
-                      : copy.setup}
+                  {value === 'flow' ? copy.preview : copy.setup}
                 </button>
               ))}
               <button
@@ -714,6 +787,12 @@ export function SopWorkflowStudio({
                 <div className="mx-auto max-w-4xl">
                   {graphRows.map(({ step, edges }, index) => {
                     const Icon = nodeIcons[step.operation];
+                    const sourceBadge = getStepSourceBadge(step.source, {
+                      sourceText: copy.source_text || 'Explicit in SOP',
+                      aiInferred: copy.ai_inferred || 'AI inferred',
+                      needsConfirmation:
+                        copy.needs_confirmation || 'Needs confirmation',
+                    });
                     return (
                       <div
                         key={step.id}
@@ -729,8 +808,24 @@ export function SopWorkflowStudio({
                           ) : null}
                         </div>
                         <div className="mb-3 min-w-0 flex-1 rounded-2xl border border-white/[0.08] bg-black/20 p-4 backdrop-blur-xl transition hover:border-white/15 md:p-5">
-                          <div className="text-[9px] tracking-[0.12em] text-white/30 uppercase">
-                            {step.operation} · {String(index).padStart(2, '0')}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[9px] tracking-[0.12em] text-white/30 uppercase">
+                              {step.operation} ·{' '}
+                              {String(index).padStart(2, '0')}
+                            </span>
+                            <span
+                              className={cn(
+                                'rounded-full border px-2 py-0.5 text-[9px] font-medium',
+                                sourceBadge.tone === 'confirmed' &&
+                                  'border-[#7cff67]/25 bg-[#7cff67]/[0.07] text-[#a9f59d]',
+                                sourceBadge.tone === 'inferred' &&
+                                  'border-[#a99cff]/30 bg-[#a99cff]/[0.08] text-[#c5bcff]',
+                                sourceBadge.tone === 'warning' &&
+                                  'border-[#ffb45e]/30 bg-[#ffb45e]/[0.08] text-[#ffd29b]'
+                              )}
+                            >
+                              {sourceBadge.label}
+                            </span>
                           </div>
                           <h4 className="mt-2 text-sm font-medium">
                             {step.title}
@@ -802,95 +897,224 @@ export function SopWorkflowStudio({
                   })}
                 </div>
               </div>
-            ) : activeTab === 'json' ? (
-              <div className="p-5 md:p-10">
-                <div className="mb-5 flex items-center gap-2 rounded-2xl border border-white/10 bg-[#15161c] px-4 py-3 text-[11px] text-white/70">
-                  <ShieldCheck className="size-4 shrink-0" />
-                  {copy.configuration_note}
-                </div>
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-medium">
-                      {copy.structured_json || 'Structured workflow JSON'}
-                    </div>
-                    <div className="mt-1 text-[10px] text-white/38">
-                      {copy.review_title ||
-                        'Edit assumptions and node details, then validate again.'}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={validateDraft}
-                    className="rounded-full border border-white/15 bg-white px-4 py-2 text-[11px] font-medium text-black transition hover:bg-white/85"
-                  >
-                    {copy.validate || 'Validate changes'}
-                  </button>
-                </div>
-                <textarea
-                  value={analysisDraft}
-                  spellCheck={false}
-                  onChange={(event) => {
-                    setAnalysisDraft(event.target.value);
-                    setDraftIsValid(false);
-                    setReviewConfirmed(false);
-                    setValidationMessage('');
-                    setError('');
-                  }}
-                  className="min-h-[440px] w-full resize-y rounded-2xl border border-white/[0.08] bg-black/35 p-5 font-mono text-[11px] leading-6 text-[#d8d3cf] transition outline-none focus:border-white/20"
-                  aria-label={
-                    copy.structured_json || 'Structured workflow JSON'
-                  }
-                />
-                {error ? (
-                  <p className="mt-3 rounded-xl border border-[#ff9f9f]/20 bg-[#ff9f9f]/[0.05] px-3 py-2 text-[11px] leading-5 text-[#ffc5c5]">
-                    {error}
-                  </p>
-                ) : null}
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3">
-                  <span className="inline-flex items-center gap-2 text-[11px] text-[#9ee792]">
-                    {validationMessage ? (
-                      <CheckCircle2 className="size-4" />
-                    ) : null}
-                    {validationMessage ||
-                      copy.review_required ||
-                      'Validate JSON before confirming.'}
-                  </span>
-                  <label className="inline-flex items-center gap-2 text-[11px] text-white/60">
-                    <input
-                      type="checkbox"
-                      checked={reviewConfirmed}
-                      disabled={!draftIsValid}
-                      onChange={(event) =>
-                        setReviewConfirmed(event.target.checked)
-                      }
-                      className="size-4 accent-white"
-                    />
-                    {copy.review_confirm ||
-                      'I reviewed the branches, risks, and required configuration.'}
-                  </label>
-                </div>
-              </div>
             ) : (
-              <div className="grid gap-8 p-5 md:grid-cols-2 md:p-10 xl:grid-cols-3">
-                {setupSections.map(({ title, items, icon: Icon }) => (
-                  <div key={title}>
-                    <div className="mb-5 flex items-center gap-2 text-sm font-medium">
-                      <Icon className="size-4 text-[#a99cff]" />
-                      {title}
+              <div className="space-y-10 p-5 md:p-10">
+                {validatedAnalysis?.confirmationQuestions.length ? (
+                  <section aria-labelledby="confirmation-questions-title">
+                    <div className="max-w-2xl">
+                      <h3
+                        id="confirmation-questions-title"
+                        className="text-lg font-semibold tracking-[-0.02em]"
+                      >
+                        {copy.confirmation_title || 'Complete missing details'}
+                      </h3>
+                      <p className="mt-2 text-xs leading-6 text-white/42">
+                        {copy.confirmation_description ||
+                          'Your answers become confirmed conditions and regenerate the workflow.'}
+                      </p>
                     </div>
-                    <div className="space-y-3">
-                      {items.map((item, index) => (
-                        <div
-                          key={item}
-                          className="flex gap-3 border-t border-white/[0.08] pt-3 text-[11px] leading-5 text-white/42"
-                        >
-                          <span className="text-[#a99cff]">{index + 1}</span>
-                          {item}
+                    <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                      {validatedAnalysis.confirmationQuestions.map(
+                        (question, index) => (
+                          <fieldset
+                            key={question.id}
+                            className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-5"
+                          >
+                            <legend className="px-1 text-sm leading-6 font-medium text-white/88">
+                              <span className="mr-2 text-[#a99cff]">
+                                {index + 1}
+                              </span>
+                              {question.question}
+                            </legend>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              {question.options.map((option) => (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  aria-pressed={
+                                    selectedAnswers[question.id] ===
+                                    option.value
+                                  }
+                                  onClick={() => {
+                                    setSelectedAnswers((current) => ({
+                                      ...current,
+                                      [question.id]: option.value,
+                                    }));
+                                    setError('');
+                                  }}
+                                  className={cn(
+                                    'rounded-full border px-3 py-2 text-[11px] transition',
+                                    selectedAnswers[question.id] ===
+                                      option.value
+                                      ? 'border-white bg-white text-black'
+                                      : 'border-white/12 text-white/55 hover:border-white/25 hover:text-white'
+                                  )}
+                                >
+                                  {option.label}
+                                </button>
+                              ))}
+                              {question.allowCustom ? (
+                                <button
+                                  type="button"
+                                  aria-pressed={
+                                    selectedAnswers[question.id] ===
+                                    '__custom__'
+                                  }
+                                  onClick={() =>
+                                    setSelectedAnswers((current) => ({
+                                      ...current,
+                                      [question.id]: '__custom__',
+                                    }))
+                                  }
+                                  className={cn(
+                                    'rounded-full border px-3 py-2 text-[11px] transition',
+                                    selectedAnswers[question.id] ===
+                                      '__custom__'
+                                      ? 'border-white bg-white text-black'
+                                      : 'border-white/12 text-white/55 hover:border-white/25 hover:text-white'
+                                  )}
+                                >
+                                  {copy.custom_answer || 'Custom answer'}
+                                </button>
+                              ) : null}
+                            </div>
+                            {selectedAnswers[question.id] === '__custom__' ? (
+                              <input
+                                value={customAnswers[question.id] || ''}
+                                onChange={(event) =>
+                                  setCustomAnswers((current) => ({
+                                    ...current,
+                                    [question.id]: event.target.value,
+                                  }))
+                                }
+                                maxLength={1000}
+                                placeholder={
+                                  copy.custom_answer_placeholder ||
+                                  'Enter the condition in your own words'
+                                }
+                                className="mt-3 h-11 w-full rounded-xl border border-white/12 bg-black/25 px-3 text-base text-white outline-none placeholder:text-white/28 focus:border-white/30 md:text-sm"
+                              />
+                            ) : null}
+                          </fieldset>
+                        )
+                      )}
+                    </div>
+                    <div className="mt-5 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={applyClarifications}
+                        disabled={busy}
+                        className="rounded-full bg-white px-5 py-2.5 text-xs font-medium text-black transition hover:bg-white/88 disabled:opacity-50"
+                      >
+                        {copy.apply_answers || 'Apply answers and regenerate'}
+                      </button>
+                      {error ? (
+                        <span className="text-xs text-[#ffb0b0]" role="alert">
+                          {error}
+                        </span>
+                      ) : null}
+                    </div>
+                  </section>
+                ) : null}
+
+                <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+                  {setupSections.map(({ title, items, icon: Icon }) => (
+                    <div key={title}>
+                      <div className="mb-5 flex items-center gap-2 text-sm font-medium">
+                        <Icon className="size-4 text-[#a99cff]" />
+                        {title}
+                      </div>
+                      <div className="space-y-3">
+                        {items.map((item, index) => (
+                          <div
+                            key={`${title}-${index}`}
+                            className="flex gap-3 border-t border-white/[0.08] pt-3 text-[11px] leading-5 text-white/42"
+                          >
+                            <span className="text-[#a99cff]">{index + 1}</span>
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <details className="group rounded-2xl border border-white/10 bg-black/20">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 marker:hidden">
+                    <span>
+                      <span className="block text-sm font-medium">
+                        {copy.advanced || 'Advanced'}
+                      </span>
+                      <span className="mt-1 block text-[10px] leading-5 text-white/38">
+                        {copy.advanced_description ||
+                          'Inspect and edit the structured JSON only when needed.'}
+                      </span>
+                    </span>
+                    <ChevronDown className="size-4 text-white/45 transition group-open:rotate-180" />
+                  </summary>
+                  <div className="border-t border-white/[0.08] p-5 md:p-6">
+                    <div className="mb-5 flex items-center gap-2 rounded-xl border border-white/10 bg-[#15161c] px-4 py-3 text-[11px] text-white/70">
+                      <ShieldCheck className="size-4 shrink-0" />
+                      {copy.configuration_note}
+                    </div>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-medium">
+                          {copy.structured_json || 'Structured workflow JSON'}
                         </div>
-                      ))}
+                        <div className="mt-1 text-[10px] text-white/38">
+                          {copy.review_title ||
+                            'Edit assumptions and node details, then validate again.'}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={validateDraft}
+                        className="rounded-full border border-white/15 bg-white px-4 py-2 text-[11px] font-medium text-black transition hover:bg-white/85"
+                      >
+                        {copy.validate || 'Validate changes'}
+                      </button>
+                    </div>
+                    <textarea
+                      value={analysisDraft}
+                      spellCheck={false}
+                      onChange={(event) => {
+                        setAnalysisDraft(event.target.value);
+                        setDraftIsValid(false);
+                        setReviewConfirmed(false);
+                        setValidationMessage('');
+                        setError('');
+                      }}
+                      className="min-h-[360px] w-full resize-y rounded-2xl border border-white/[0.08] bg-black/35 p-5 font-mono text-[11px] leading-6 text-[#d8d3cf] transition outline-none focus:border-white/20"
+                      aria-label={
+                        copy.structured_json || 'Structured workflow JSON'
+                      }
+                    />
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3">
+                      <span className="inline-flex items-center gap-2 text-[11px] text-[#9ee792]">
+                        {validationMessage ? (
+                          <CheckCircle2 className="size-4" />
+                        ) : null}
+                        {validationMessage ||
+                          copy.review_required ||
+                          'Validate JSON before confirming.'}
+                      </span>
+                      <label className="inline-flex items-center gap-2 text-[11px] text-white/60">
+                        <input
+                          type="checkbox"
+                          checked={reviewConfirmed}
+                          disabled={!draftIsValid}
+                          onChange={(event) =>
+                            setReviewConfirmed(event.target.checked)
+                          }
+                          className="size-4 accent-white"
+                        />
+                        {copy.review_confirm ||
+                          'I reviewed the branches, risks, and required configuration.'}
+                      </label>
                     </div>
                   </div>
-                ))}
+                </details>
               </div>
             )}
           </div>

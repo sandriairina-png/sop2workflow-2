@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { validateSopAnalysisGraph } from './graph';
-import { SopAnalysis, SopAnalysisSchema } from './schema';
+import { SopAnalysis, SopAnalysisSchema, SopStepSchema } from './schema';
 
 function inventoryAnalysis(): SopAnalysis {
   return {
@@ -23,6 +23,7 @@ function inventoryAnalysis(): SopAnalysis {
         id: 'check-stock',
         title: '检查库存',
         description: '从 ERP 获取可用库存并判断是否充足。',
+        source: 'source_text',
         operation: 'condition',
         integration: {
           system: 'ERP',
@@ -64,6 +65,7 @@ function inventoryAnalysis(): SopAnalysis {
         id: 'notify-warehouse',
         title: '通知仓库',
         description: '通知仓库拣货。',
+        source: 'source_text',
         ownerActorId: 'warehouse',
         operation: 'notify',
         inputs: ['SKU'],
@@ -75,6 +77,7 @@ function inventoryAnalysis(): SopAnalysis {
         id: 'notify-purchasing',
         title: '通知采购',
         description: '通知采购补货。',
+        source: 'source_text',
         ownerActorId: 'purchasing',
         operation: 'notify',
         inputs: ['SKU'],
@@ -85,6 +88,7 @@ function inventoryAnalysis(): SopAnalysis {
     ],
     assumptions: ['库存充足指可用库存大于 0。'],
     missingInformation: ['ERP 库存接口地址。'],
+    confirmationQuestions: [],
     deploymentChecklist: ['配置 ERP 凭据并确认工作流时区。'],
     risks: [
       {
@@ -153,8 +157,53 @@ test('keeps rejection notification semantic', () => {
 
 test('rejects secret-like generated values', () => {
   const analysis = inventoryAnalysis();
-  analysis.missingInformation = [
-    'Use api_key=example-secret-value-1234567890',
-  ];
+  analysis.missingInformation = ['Use api_key=example-secret-value-1234567890'];
   assert.throws(() => validateSopAnalysisGraph(analysis), /secret/i);
+});
+
+test('requires every workflow node to declare a valid source', () => {
+  const step = {
+    id: 'submit',
+    title: '提交申请',
+    description: '员工提交报销申请。',
+    operation: 'write',
+    inputs: [],
+    outputs: [],
+    next: [],
+    errorHandling: [],
+  };
+
+  assert.throws(() => SopStepSchema.parse(step));
+  assert.equal(
+    SopStepSchema.parse({ ...step, source: 'source_text' }).source,
+    'source_text'
+  );
+  assert.throws(() =>
+    SopStepSchema.parse({ ...step, source: 'model_guessed' })
+  );
+});
+
+test('keeps 2 to 3 answer options for each confirmation question', () => {
+  const analysis = inventoryAnalysis() as unknown as Record<string, unknown>;
+  analysis.confirmationQuestions = [
+    {
+      id: 'approval_after_reject',
+      question: '驳回后应如何处理？',
+      options: [
+        { value: 'resubmit', label: '补充材料后重新提交' },
+        { value: 'end', label: '直接结束流程' },
+      ],
+      allowCustom: true,
+    },
+  ];
+
+  const parsed = SopAnalysisSchema.parse(analysis) as unknown as {
+    confirmationQuestions: Array<{ options: unknown[] }>;
+  };
+  assert.equal(parsed.confirmationQuestions[0].options.length, 2);
+
+  const invalid = structuredClone(analysis) as typeof analysis;
+  (invalid.confirmationQuestions as Array<{ options: unknown[] }>)[0].options =
+    [{ value: 'only', label: '唯一选项' }];
+  assert.throws(() => SopAnalysisSchema.parse(invalid));
 });

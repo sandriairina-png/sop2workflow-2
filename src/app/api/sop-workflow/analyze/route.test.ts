@@ -24,6 +24,7 @@ const success: SopAnalysisResponse = {
         id: 'done',
         title: '完成',
         description: '完成',
+        source: 'source_text',
         operation: 'end',
         inputs: [],
         outputs: [],
@@ -33,6 +34,7 @@ const success: SopAnalysisResponse = {
     ],
     assumptions: [],
     missingInformation: [],
+    confirmationQuestions: [],
     deploymentChecklist: [],
     risks: [],
     tests: [],
@@ -201,6 +203,38 @@ test('returns validated analysis with no-store and anonymous cookie', async () =
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.match(response.headers.get('set-cookie') || '', /sopwf_anon=/);
   assert.deepEqual(await response.json(), success);
+});
+
+test('passes user clarification answers back into model analysis', async () => {
+  let received: unknown;
+  const response = await handler({
+    analyze: async (input) => {
+      received = input;
+      return success;
+    },
+  })(
+    request({
+      sop: '提交报销后按金额审批。',
+      locale: 'zh',
+      triggerHint: 'auto',
+      clarifications: [
+        {
+          questionId: 'amount_boundary',
+          question: '财务总监审批阈值是多少？',
+          answer: '5000 元及以上',
+        },
+      ],
+    })
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual((received as { clarifications?: unknown }).clarifications, [
+    {
+      questionId: 'amount_boundary',
+      question: '财务总监审批阈值是多少？',
+      answer: '5000 元及以上',
+    },
+  ]);
 });
 
 test('uses a stable client identity even when the caller drops cookies', async () => {
