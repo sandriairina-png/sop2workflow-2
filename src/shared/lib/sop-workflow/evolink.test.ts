@@ -6,6 +6,7 @@ import {
   EVOLINK_DEFAULT_MAX_TOKENS,
   EVOLINK_DEFAULT_TIMEOUT_MS,
 } from './evolink';
+import type { SopSkeleton } from './schema';
 
 const validAnalysis = {
   schemaVersion: '1.0',
@@ -212,6 +213,69 @@ test('repairs invalid skeleton JSON once before requesting details', async () =>
   assert.match(repairPrompt, /JSON|schemaVersion/);
   assert.equal(result.analysis.title, '测试');
   assert.equal(result.meta.usage.totalTokens, 600);
+});
+
+test('normalizes localized skeleton enums before detail generation', async () => {
+  const localizedSkeleton = {
+    ...validSkeleton,
+    trigger: { type: '手动触发', description: '员工提交报销申请' },
+    actors: [{ id: 'employee', name: '员工' }],
+    steps: [
+      {
+        id: 'check',
+        title: '判断金额',
+        description: '按金额分支',
+        operation: '条件判断',
+        next: [
+          {
+            targetStepId: 'done',
+            label: '满足条件',
+            branch: '是',
+            condition: {
+              leftValue: 'amount',
+              operator: '大于等于',
+              rightValue: 5000,
+              explanation: '金额达到财务总监审批门槛',
+            },
+          },
+          { targetStepId: 'done', label: '否则', branch: '否' },
+        ],
+      },
+      {
+        id: 'done',
+        title: '完成',
+        description: '结束流程',
+        operation: '结束',
+        next: [],
+      },
+    ],
+  };
+  let calls = 0;
+  let detailSkeleton: SopSkeleton | undefined;
+  const result = await analyzeSopWithEvolink(
+    { sop: '检查金额。', locale: 'zh', triggerHint: 'auto' },
+    {
+      apiKey: 'test-provider-key',
+      fetch: async (_url, init) => {
+        calls += 1;
+        if (calls === 1) return response(JSON.stringify(localizedSkeleton));
+        const body = JSON.parse(String(init?.body));
+        detailSkeleton = JSON.parse(body.messages.at(-1).content).skeleton;
+        return response(JSON.stringify(validAnalysis));
+      },
+    }
+  );
+  assert.equal(calls, 2);
+  assert.equal(detailSkeleton?.trigger.type, 'manual');
+  assert.equal(detailSkeleton?.actors[0].responsibility, '员工');
+  assert.equal(detailSkeleton?.steps[0].operation, 'condition');
+  assert.equal(detailSkeleton?.steps[0].next[0].branch, 'true');
+  assert.equal(
+    detailSkeleton?.steps[0].next[0].condition?.operator,
+    'greaterThanOrEqual'
+  );
+  assert.equal(detailSkeleton?.steps[0].next[1].branch, 'false');
+  assert.equal(result.analysis.title, '测试');
 });
 
 test('performs at most one repair request after invalid model JSON', async () => {

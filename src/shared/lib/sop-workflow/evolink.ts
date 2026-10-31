@@ -129,6 +129,148 @@ async function requestProvider(
   }
 }
 
+function normalizedTrigger(value: unknown) {
+  const text = String(value || '').toLowerCase();
+  if (text === 'schedule' || /定时|计划|周期|cron/.test(text)) {
+    return 'schedule';
+  }
+  if (text === 'webhook' || /事件|回调|接口|触发器/.test(text)) {
+    return 'webhook';
+  }
+  return 'manual';
+}
+
+function normalizedOperation(value: unknown, title: unknown) {
+  const exact = String(value || '').toLowerCase();
+  const allowed = [
+    'read',
+    'transform',
+    'write',
+    'approve',
+    'notify',
+    'wait',
+    'condition',
+    'merge',
+    'end',
+  ];
+  if (allowed.includes(exact)) return exact;
+  const text = `${value || ''} ${title || ''}`.toLowerCase();
+  if (/审批|审核|复核/.test(text)) return 'approve';
+  if (/通知|提醒|消息|告警/.test(text)) return 'notify';
+  if (/判断|条件|分支|校验/.test(text)) return 'condition';
+  if (/合并|汇总|聚合/.test(text)) return 'merge';
+  if (/等待|延迟|暂停/.test(text)) return 'wait';
+  if (/结束|完成|终止/.test(text)) return 'end';
+  if (/读取|获取|查询|检索/.test(text)) return 'read';
+  if (/转换|计算|处理|格式化/.test(text)) return 'transform';
+  return 'write';
+}
+
+function normalizedBranch(
+  value: unknown,
+  operation: string,
+  index: number,
+  count: number
+) {
+  const text = String(value || '').toLowerCase();
+  if (['default', 'true', 'false', 'case', 'error'].includes(text)) {
+    return text;
+  }
+  if (/异常|错误|失败|驳回|error/.test(text)) return 'error';
+  if (/否则|不满足|假|否|false/.test(text)) return 'false';
+  if (/满足|真|是|通过|true/.test(text)) return 'true';
+  if (operation === 'condition') {
+    if (count === 2) return index === 0 ? 'true' : 'false';
+    return 'case';
+  }
+  return 'default';
+}
+
+function normalizedOperator(value: unknown) {
+  const exact = String(value || '');
+  const allowed = [
+    'equals',
+    'notEquals',
+    'greaterThan',
+    'greaterThanOrEqual',
+    'lessThan',
+    'lessThanOrEqual',
+    'contains',
+    'isEmpty',
+    'isNotEmpty',
+  ];
+  if (allowed.includes(exact)) return exact;
+  const text = exact.toLowerCase();
+  if (/不等于|不相等|!=|≠/.test(text)) return 'notEquals';
+  if (/大于等于|不少于|至少|>=|≥/.test(text)) return 'greaterThanOrEqual';
+  if (/小于等于|不超过|至多|<=|≤/.test(text)) return 'lessThanOrEqual';
+  if (/大于|超过|>/.test(text)) return 'greaterThan';
+  if (/小于|低于|</.test(text)) return 'lessThan';
+  if (/不为空|非空/.test(text)) return 'isNotEmpty';
+  if (/为空|空值/.test(text)) return 'isEmpty';
+  if (/包含|含有|contains/.test(text)) return 'contains';
+  return 'equals';
+}
+
+function normalizeSkeleton(raw: unknown) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
+  const skeleton = raw as Record<string, unknown>;
+  const trigger =
+    skeleton.trigger && typeof skeleton.trigger === 'object'
+      ? (skeleton.trigger as Record<string, unknown>)
+      : {};
+  const actors = Array.isArray(skeleton.actors)
+    ? skeleton.actors.map((actor) => {
+        const record = actor as Record<string, unknown>;
+        return {
+          ...record,
+          responsibility: record.responsibility || record.name || '参与流程',
+        };
+      })
+    : [];
+  const steps = Array.isArray(skeleton.steps)
+    ? skeleton.steps.map((step) => {
+        const record = step as Record<string, unknown>;
+        const operation = normalizedOperation(record.operation, record.title);
+        const connections = Array.isArray(record.next) ? record.next : [];
+        return {
+          ...record,
+          operation,
+          next: connections.map((connection, index) => {
+            const next = connection as Record<string, unknown>;
+            const condition =
+              next.condition && typeof next.condition === 'object'
+                ? (next.condition as Record<string, unknown>)
+                : undefined;
+            return {
+              ...next,
+              ...(condition
+                ? {
+                    condition: {
+                      ...condition,
+                      operator: normalizedOperator(condition.operator),
+                    },
+                  }
+                : {}),
+              branch: normalizedBranch(
+                next.branch,
+                operation,
+                index,
+                connections.length
+              ),
+            };
+          }),
+        };
+      })
+    : [];
+  return {
+    ...skeleton,
+    trigger: { ...trigger, type: normalizedTrigger(trigger.type) },
+    actors,
+    steps,
+  };
+}
+
 function parseSkeleton(payload: ProviderPayload) {
   const content = payload.choices?.[0]?.message?.content;
   if (!content)
@@ -136,7 +278,7 @@ function parseSkeleton(payload: ProviderPayload) {
 
   try {
     const parsed = SopSkeletonSchema.safeParse(
-      JSON.parse(extractJson(content))
+      normalizeSkeleton(JSON.parse(extractJson(content)))
     );
     if (parsed.success) return parsed.data;
     const issues = parsed.error.issues
