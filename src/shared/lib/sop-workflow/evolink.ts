@@ -8,6 +8,7 @@ import {
   SopAnalysisRequest,
   SopAnalysisResponse,
   SopAnalysisSchema,
+  SopSkeleton,
   SopSkeletonSchema,
 } from './schema';
 
@@ -57,7 +58,12 @@ type ProviderPayload = {
 
 function extractJson(content: string) {
   const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  return (fenced?.[1] || content).trim();
+  const candidate = (fenced?.[1] || content).trim();
+  const start = candidate.indexOf('{');
+  const end = candidate.lastIndexOf('}');
+  return start >= 0 && end > start
+    ? candidate.slice(start, end + 1)
+    : candidate;
 }
 
 function usageOf(payload: ProviderPayload) {
@@ -207,15 +213,38 @@ export async function analyzeSopWithEvolink(
   }
 
   const deadline = Date.now() + config.timeoutMs;
-  const skeletonPayload = await requestProvider(
-    buildSopSkeletonMessages(input),
-    config,
-    {
-      maxTokens: Math.min(EVOLINK_SKELETON_MAX_TOKENS, config.maxTokens),
-      timeoutMs: remainingTimeout(deadline, SKELETON_TIMEOUT_MS),
+  const skeletonMessages = buildSopSkeletonMessages(input);
+  let skeletonPayload = await requestProvider(skeletonMessages, config, {
+    maxTokens: Math.min(EVOLINK_SKELETON_MAX_TOKENS, config.maxTokens),
+    timeoutMs: remainingTimeout(deadline, SKELETON_TIMEOUT_MS),
+  });
+  let skeletonUsage = usageOf(skeletonPayload);
+  let skeleton: SopSkeleton;
+  try {
+    skeleton = parseSkeleton(skeletonPayload);
+  } catch (error) {
+    if (!(error instanceof EvolinkError) || error.code !== 'invalid_output') {
+      throw error;
     }
-  );
-  const skeleton = parseSkeleton(skeletonPayload);
+    const repairedSkeleton = await requestProvider(
+      [
+        ...skeletonMessages,
+        {
+          role: 'user',
+          content:
+            '上一个主干结果不是可解析的 JSON。请只返回完整 JSON 对象，必须包含 schemaVersion、title、summary、trigger、actors、steps；不要解释、不要 Markdown、不要代码围栏。',
+        },
+      ],
+      config,
+      {
+        maxTokens: Math.min(EVOLINK_SKELETON_MAX_TOKENS, config.maxTokens),
+        timeoutMs: remainingTimeout(deadline, SKELETON_TIMEOUT_MS),
+      }
+    );
+    skeletonPayload = repairedSkeleton;
+    skeletonUsage = addUsage(skeletonUsage, usageOf(repairedSkeleton));
+    skeleton = parseSkeleton(repairedSkeleton);
+  }
   const messages = buildSopDetailMessages(input, skeleton);
   const first = await requestProvider(messages, config, {
     maxTokens: config.maxTokens,
@@ -229,7 +258,7 @@ export async function analyzeSopWithEvolink(
         model: config.model,
         promptVersion: SOP_ANALYSIS_PROMPT_VERSION,
         requestId: first.id || crypto.randomUUID(),
-        usage: addUsage(usageOf(skeletonPayload), usageOf(first)),
+        usage: addUsage(skeletonUsage, usageOf(first)),
       },
     };
   } catch (error) {
@@ -255,7 +284,6 @@ export async function analyzeSopWithEvolink(
       timeoutMs: remainingTimeout(deadline, DETAIL_TIMEOUT_MS),
     }
   );
-  const skeletonUsage = usageOf(skeletonPayload);
   const firstUsage = usageOf(first);
   const repairUsage = usageOf(repaired);
   return {

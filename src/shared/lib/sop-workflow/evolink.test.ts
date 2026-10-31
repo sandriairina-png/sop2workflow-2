@@ -165,6 +165,50 @@ test('extracts JSON from a markdown fence', async () => {
   assert.equal(result.analysis.title, '测试');
 });
 
+test('extracts JSON objects surrounded by model commentary', async () => {
+  let calls = 0;
+  const result = await analyzeSopWithEvolink(
+    { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
+    {
+      apiKey: 'test-provider-key',
+      fetch: async () => {
+        calls += 1;
+        return calls === 1
+          ? response(`主干如下：\n${JSON.stringify(validSkeleton)}\n请确认。`)
+          : response(
+              `完整结果如下：\n${JSON.stringify(validAnalysis)}\n完成。`
+            );
+      },
+    }
+  );
+  assert.equal(result.analysis.title, '测试');
+});
+
+test('repairs invalid skeleton JSON once before requesting details', async () => {
+  let calls = 0;
+  let repairPrompt = '';
+  const result = await analyzeSopWithEvolink(
+    { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
+    {
+      apiKey: 'test-provider-key',
+      fetch: async (_url, init) => {
+        calls += 1;
+        if (calls === 2) {
+          const body = JSON.parse(String(init?.body));
+          repairPrompt = body.messages.at(-1)?.content || '';
+        }
+        if (calls === 1) return response('我需要更多信息才能输出。');
+        if (calls === 2) return response(JSON.stringify(validSkeleton));
+        return response(JSON.stringify(validAnalysis));
+      },
+    }
+  );
+  assert.equal(calls, 3);
+  assert.match(repairPrompt, /JSON|schemaVersion/);
+  assert.equal(result.analysis.title, '测试');
+  assert.equal(result.meta.usage.totalTokens, 600);
+});
+
 test('performs at most one repair request after invalid model JSON', async () => {
   let calls = 0;
   let repairMessages: Array<{ role?: string; content?: string }> = [];
