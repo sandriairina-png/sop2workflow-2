@@ -17,9 +17,10 @@ export const EVOLINK_DEFAULT_URL =
 export const EVOLINK_DEFAULT_MODEL = 'gemini-3.8-flash';
 export const EVOLINK_DEFAULT_MAX_TOKENS = 6000;
 export const EVOLINK_SKELETON_MAX_TOKENS = 4000;
-export const EVOLINK_DEFAULT_TIMEOUT_MS = 105_000;
-const SKELETON_TIMEOUT_MS = 30_000;
-const DETAIL_TIMEOUT_MS = 60_000;
+export const EVOLINK_DETAIL_MAX_TOKENS = 5000;
+export const EVOLINK_DEFAULT_TIMEOUT_MS = 65_000;
+const SKELETON_TIMEOUT_MS = 25_000;
+const DETAIL_TIMEOUT_MS = 38_000;
 
 export class EvolinkError extends Error {
   constructor(
@@ -395,9 +396,9 @@ export async function analyzeSopWithEvolink(
   }
   const messages = buildSopDetailMessages(input, skeleton);
   const first = await requestProvider(messages, config, {
-    maxTokens: config.maxTokens,
+    maxTokens: Math.min(EVOLINK_DETAIL_MAX_TOKENS, config.maxTokens),
     timeoutMs: remainingTimeout(deadline, DETAIL_TIMEOUT_MS),
-    reasoningEffort: 'medium',
+    reasoningEffort: 'low',
   });
   let repairReason = 'The response did not match the required contract.';
   try {
@@ -429,9 +430,9 @@ export async function analyzeSopWithEvolink(
     ],
     config,
     {
-      maxTokens: config.maxTokens,
+      maxTokens: Math.min(EVOLINK_DETAIL_MAX_TOKENS, config.maxTokens),
       timeoutMs: remainingTimeout(deadline, DETAIL_TIMEOUT_MS),
-      reasoningEffort: 'medium',
+      reasoningEffort: 'low',
     }
   );
   const firstUsage = usageOf(first);
