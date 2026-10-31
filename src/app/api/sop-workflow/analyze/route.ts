@@ -189,6 +189,12 @@ export function createAnalyzeHandler(deps: AnalyzeHandlerDeps = {}) {
       }
       return response;
     } catch (error) {
+      if (error instanceof EvolinkError) {
+        console.warn('sop_workflow_generation_failed', {
+          code: error.code,
+          reason: error.message,
+        });
+      }
       const safe = safeError(error);
       return json({ error: safe.code }, safe.status);
     } finally {

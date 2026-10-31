@@ -125,11 +125,23 @@ function parseSkeleton(payload: ProviderPayload) {
     throw new EvolinkError('invalid_output', 'Model skeleton is empty.');
 
   try {
-    return SopSkeletonSchema.parse(JSON.parse(extractJson(content)));
-  } catch {
+    const parsed = SopSkeletonSchema.safeParse(
+      JSON.parse(extractJson(content))
+    );
+    if (parsed.success) return parsed.data;
+    const issues = parsed.error.issues
+      .slice(0, 12)
+      .map((issue) => `${issue.path.join('.') || 'root'}: ${issue.message}`)
+      .join('; ');
     throw new EvolinkError(
       'invalid_output',
-      'Model skeleton does not match the required contract.'
+      `Skeleton validation failed: ${issues}`
+    );
+  } catch (error) {
+    if (error instanceof EvolinkError) throw error;
+    throw new EvolinkError(
+      'invalid_output',
+      'The skeleton response is not valid JSON.'
     );
   }
 }
