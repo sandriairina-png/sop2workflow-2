@@ -388,7 +388,9 @@ test('all landing sections use the React Bits scroll entrance', () => {
 
   assert.match(page, /import AnimatedContent/);
   assert.match(page, /<AnimatedContent/);
-  assert.match(page, /trigger=\{block === 'hero' \? 'mount' : 'scroll'\}/);
+  assert.match(page, /trigger="scroll"/);
+  // The hero must render visible before JS loads, so it is not wrapped.
+  assert.match(page, /if \(block === 'hero'\)/);
   assert.ok(existsSync(componentUrl), 'AnimatedContent component is missing');
   const animatedContent = readFileSync(componentUrl, 'utf8');
   assert.match(animatedContent, /ScrollTrigger/);

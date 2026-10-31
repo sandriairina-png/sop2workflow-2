@@ -44,17 +44,27 @@ export default async function DynamicPage({
                   );
                 }
 
+                // AnimatedContent renders hidden until GSAP loads, so the first
+                // screen would stay blank on slow networks. Show it immediately.
+                if (block === 'hero') {
+                  return (
+                    <div key={sectionKey} className="w-full">
+                      {content}
+                    </div>
+                  );
+                }
+
                 return (
                   <AnimatedContent
                     key={sectionKey}
                     className="w-full"
-                    distance={block === 'hero' ? 28 : 64}
-                    duration={block === 'hero' ? 0.75 : 0.85}
+                    distance={64}
+                    duration={0.85}
                     ease="power3.out"
                     initialOpacity={0}
-                    blur={block === 'hero' ? 0 : 4}
+                    blur={4}
                     threshold={0.12}
-                    trigger={block === 'hero' ? 'mount' : 'scroll'}
+                    trigger="scroll"
                     once={false}
                   >
                     {content}

@@ -1,4 +1,5 @@
 import { ComponentType, lazy, Suspense } from 'react';
+
 import {
   RiAddLine,
   RiChat2Line,
@@ -12,7 +13,7 @@ import {
   RiRefreshLine,
   RiTaskLine,
   RiTwitterXFill,
-} from 'react-icons/ri';
+} from './remix-icons';
 
 const iconCache: { [key: string]: ComponentType<any> } = {};
 
