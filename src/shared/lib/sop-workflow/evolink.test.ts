@@ -526,3 +526,40 @@ test('aborts provider work after the configured timeout', async () => {
     /timeout/i
   );
 });
+
+test('routes labelled condition branches without operands on decision', async () => {
+  const unlabelled = {
+    ...validSkeleton,
+    steps: [
+      {
+        id: 'dedupe',
+        title: '幂等校验',
+        description: '检查单号',
+        operation: 'condition',
+        next: [
+          { targetStepId: 'done', label: '新请求', branch: 'true' },
+          { targetStepId: 'done', label: '重复请求', branch: 'false' },
+        ],
+      },
+      validSkeleton.steps[2],
+    ],
+  };
+  const mock = provider({
+    skeleton: () => response(JSON.stringify(unlabelled)),
+  });
+  const result = await analyzeSopWithEvolink(input, {
+    apiKey: 'test-provider-key',
+    fetch: mock.fetch,
+  });
+  assert.equal(mock.attempts.skeleton, 1);
+  assert.deepEqual(
+    result.analysis.steps[0].next.map((edge) => [
+      edge.condition?.leftValue,
+      edge.condition?.rightValue,
+    ]),
+    [
+      ['{{$json.decision}}', '新请求'],
+      ['{{$json.decision}}', '重复请求'],
+    ]
+  );
+});

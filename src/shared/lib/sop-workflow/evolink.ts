@@ -30,7 +30,7 @@ export const EVOLINK_SKELETON_MAX_TOKENS = 4000;
 export const EVOLINK_STEP_DETAIL_MAX_TOKENS = 3500;
 export const EVOLINK_PLAN_MAX_TOKENS = 2500;
 export const EVOLINK_DEFAULT_TIMEOUT_MS = 65_000;
-const SKELETON_TIMEOUT_MS = 23_000;
+const SKELETON_TIMEOUT_MS = 30_000;
 const DETAIL_TIMEOUT_MS = 50_000;
 
 export class EvolinkError extends Error {
@@ -253,6 +253,8 @@ function normalizedOperator(value: unknown) {
   return 'equals';
 }
 
+export const DECISION_FIELD = '{{$json.decision}}';
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -306,6 +308,23 @@ function normalizeSkeleton(raw: unknown) {
             const explanation = String(
               condition?.explanation || next.label || ''
             );
+            const branch = normalizedBranch(
+              next.branch,
+              operation,
+              index,
+              connections.length
+            );
+            // A labelled condition branch without operands (e.g. "重复请求")
+            // is routed on {{$json.decision}}, like approval outcomes.
+            const decision =
+              !condition && operation === 'condition' && branch !== 'default'
+                ? {
+                    leftValue: DECISION_FIELD,
+                    operator: 'equals',
+                    rightValue: String(next.label || ''),
+                    explanation: String(next.label || ''),
+                  }
+                : undefined;
             return {
               ...next,
               ...(condition
@@ -317,13 +336,10 @@ function normalizeSkeleton(raw: unknown) {
                       operator: normalizedOperator(condition.operator),
                     },
                   }
-                : {}),
-              branch: normalizedBranch(
-                next.branch,
-                operation,
-                index,
-                connections.length
-              ),
+                : decision
+                  ? { condition: decision }
+                  : {}),
+              branch,
             };
           }),
         };

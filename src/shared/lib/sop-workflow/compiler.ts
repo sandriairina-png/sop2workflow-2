@@ -436,6 +436,18 @@ export function compileN8nWorkflow(input: SopAnalysis): N8nWorkflow {
     );
   });
   for (const step of analysis.steps) {
+    const decisions = step.next.filter(
+      (edge) =>
+        step.operation === 'condition' &&
+        edge.condition?.leftValue.replace(/\s/g, '') === '{{$json.decision}}'
+    );
+    if (decisions.length) {
+      requirements.push(
+        `${step.title}: set {{$json.decision}} to one of ${decisions
+          .map((edge) => `"${edge.label}"`)
+          .join(', ')} so the condition picks a branch.`
+      );
+    }
     const business = step.errorHandling.filter(
       (item) => classifyErrorHandling(item) === 'business'
     );
