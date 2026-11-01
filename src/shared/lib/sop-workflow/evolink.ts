@@ -6,6 +6,7 @@ import {
   SOP_SKELETON_COMPACT_RETRY_PROMPT,
 } from './prompt';
 import {
+  classifyErrorHandling,
   SopAnalysis,
   SopAnalysisRequest,
   SopAnalysisResponse,
@@ -194,6 +195,42 @@ function normalizedBranch(
   return 'default';
 }
 
+const OPERATOR_ALIASES: Record<string, string> = {
+  equals: 'equals',
+  eq: 'equals',
+  notequals: 'notEquals',
+  ne: 'notEquals',
+  neq: 'notEquals',
+  greaterthan: 'greaterThan',
+  gt: 'greaterThan',
+  greaterthanorequal: 'greaterThanOrEqual',
+  gte: 'greaterThanOrEqual',
+  lessthan: 'lessThan',
+  lt: 'lessThan',
+  lessthanorequal: 'lessThanOrEqual',
+  lte: 'lessThanOrEqual',
+  contains: 'contains',
+  isempty: 'isEmpty',
+  empty: 'isEmpty',
+  isnotempty: 'isNotEmpty',
+  notempty: 'isNotEmpty',
+};
+
+const BRANCH_ALIASES: Record<string, string> = {
+  default: 'default',
+  true: 'true',
+  false: 'false',
+  case: 'case',
+  error: 'error',
+  yes: 'true',
+  no: 'false',
+  是: 'true',
+  否: 'false',
+  通过: 'true',
+  驳回: 'error',
+  拒绝: 'error',
+};
+
 function normalizedOperator(value: unknown) {
   const exact = String(value || '');
   const allowed = [
@@ -209,6 +246,8 @@ function normalizedOperator(value: unknown) {
   ];
   if (allowed.includes(exact)) return exact;
   const text = exact.toLowerCase();
+  const alias = OPERATOR_ALIASES[text];
+  if (alias) return alias;
   if (/不等于|不相等|!=|≠/.test(text)) return 'notEquals';
   if (/大于等于|不少于|至少|>=|≥/.test(text)) return 'greaterThanOrEqual';
   if (/小于等于|不超过|至多|<=|≤/.test(text)) return 'lessThanOrEqual';
@@ -286,6 +325,69 @@ function normalizeSkeleton(raw: unknown) {
   };
 }
 
+function normalizedErrorKind(value: unknown) {
+  const text = String(value || '').toLowerCase();
+  if (text === 'system' || /系统|技术/.test(text)) return 'system' as const;
+  if (text === 'business' || /业务/.test(text)) return 'business' as const;
+  return undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+// The detail stage gets strict normalization: only unambiguous aliases are
+// mapped, so anything else still fails validation and goes through repair.
+// System errors are wired to the shared handler at export, so their
+// targetStepId (usually a business step) is dropped.
+function normalizeAnalysis(raw: unknown) {
+  if (!isRecord(raw) || !Array.isArray(raw.steps)) return raw;
+  return {
+    ...raw,
+    steps: raw.steps.map((step) => {
+      if (!isRecord(step)) return step;
+      return {
+        ...step,
+        next: Array.isArray(step.next)
+          ? step.next.map((edge) => {
+              if (!isRecord(edge)) return edge;
+              const branch =
+                BRANCH_ALIASES[String(edge.branch ?? '').toLowerCase()];
+              const condition = isRecord(edge.condition)
+                ? {
+                    ...edge.condition,
+                    operator:
+                      OPERATOR_ALIASES[
+                        String(edge.condition.operator ?? '').toLowerCase()
+                      ] || edge.condition.operator,
+                  }
+                : edge.condition;
+              return {
+                ...edge,
+                branch: branch || edge.branch,
+                ...(condition === undefined ? {} : { condition }),
+              };
+            })
+          : step.next,
+        errorHandling: Array.isArray(step.errorHandling)
+          ? step.errorHandling.map((item) => {
+              if (!isRecord(item)) return item;
+              const kind =
+                normalizedErrorKind(item.kind) ||
+                classifyErrorHandling({
+                  scenario: String(item.scenario || ''),
+                  action: String(item.action || ''),
+                });
+              if (kind === 'business') return { ...item, kind };
+              const { targetStepId: _target, ...rest } = item;
+              return { ...rest, kind };
+            })
+          : step.errorHandling,
+      };
+    }),
+  };
+}
+
 function parseSkeleton(payload: ProviderPayload) {
   const content = payload.choices?.[0]?.message?.content;
   if (!content)
@@ -336,7 +438,13 @@ function parseAnalysis(payload: ProviderPayload) {
     );
   }
 
-  const parsed = SopAnalysisSchema.safeParse(raw);
+  let normalized: unknown;
+  try {
+    normalized = normalizeAnalysis(raw);
+  } catch {
+    throw new EvolinkError('invalid_output', 'The response could not be read.');
+  }
+  const parsed = SopAnalysisSchema.safeParse(normalized);
   if (!parsed.success) {
     const issues = parsed.error.issues
       .slice(0, 12)

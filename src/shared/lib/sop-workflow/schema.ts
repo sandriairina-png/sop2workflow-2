@@ -40,6 +40,42 @@ export const SopStepSourceSchema = z.enum([
 ]);
 export type SopStepSource = z.infer<typeof SopStepSourceSchema>;
 
+export const SopErrorKindSchema = z.enum(['system', 'business']);
+export type SopErrorKind = z.infer<typeof SopErrorKindSchema>;
+
+export const SopErrorHandlingSchema = z.object({
+  kind: SopErrorKindSchema.optional(),
+  scenario: z.string().min(1),
+  action: z.string().min(1),
+  targetStepId: z.string().min(1).optional(),
+});
+export type SopErrorHandling = z.infer<typeof SopErrorHandlingSchema>;
+
+// Strong signals that the system itself failed, checked before business words.
+const STRONG_SYSTEM_PATTERN =
+  /接口|api|网关|网络|数据库|鉴权|认证|凭证|token|限流|宕机|http|gateway|network/i;
+// Words for what went wrong in the business. Role words (主管, 客户...) are left
+// out because they usually name who gets notified, not what failed.
+const BUSINESS_EXCEPTION_PATTERN =
+  /审批|驳回|拒绝|缺货|库存不足|不符|不一致|差异|未付款|未处理|未及时|催办|reject|approv|out of stock/i;
+const SYSTEM_EXCEPTION_PATTERN =
+  /超时|timeout|不可用|无响应|调用失败|请求失败|读取|写入|同步失败|发送失败|解析|系统|服务|unavailable|failed/i;
+
+function errorKindOf(text: string): SopErrorKind | undefined {
+  if (STRONG_SYSTEM_PATTERN.test(text)) return 'system';
+  if (BUSINESS_EXCEPTION_PATTERN.test(text)) return 'business';
+  if (SYSTEM_EXCEPTION_PATTERN.test(text)) return 'system';
+  return undefined;
+}
+
+// Business exceptions are routed through `next`; only system exceptions use
+// the n8n error output. Older drafts have no `kind`, so infer it from the
+// scenario first and only then from the remediation text.
+export function classifyErrorHandling(item: SopErrorHandling): SopErrorKind {
+  if (item.kind) return item.kind;
+  return errorKindOf(item.scenario) || errorKindOf(item.action) || 'system';
+}
+
 export const SopStepSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -68,13 +104,7 @@ export const SopStepSchema = z.object({
   inputs: z.array(z.string()),
   outputs: z.array(z.string()),
   next: z.array(SopConnectionSchema),
-  errorHandling: z.array(
-    z.object({
-      scenario: z.string().min(1),
-      action: z.string().min(1),
-      targetStepId: z.string().min(1).optional(),
-    })
-  ),
+  errorHandling: z.array(SopErrorHandlingSchema),
 });
 export type SopStep = z.infer<typeof SopStepSchema>;
 

@@ -7,6 +7,8 @@ import {
   buildClarificationAnswers,
   buildWorkflowGraphRows,
   getStepSourceBadge,
+  mergeClarifications,
+  resolveConfirmationQuestions,
   resolveWorkflowError,
   validateAnalysisDraft,
 } from './sop-workflow-studio-model';
@@ -184,5 +186,118 @@ test('builds supplemental model conditions from selected and custom answers', ()
         answer: '驳回原节点修改后重新提交',
       },
     ]
+  );
+});
+
+const labels = {
+  conventional: '按行业常规做法补全',
+  configureLater: '先保留为待配置项',
+};
+
+test('keeps answers from earlier rounds and lets newer answers win', () => {
+  const merged = mergeClarifications(
+    [
+      { questionId: 'threshold', question: '阈值？', answer: '5000 元' },
+      { questionId: 'reject', question: '驳回后？', answer: '重新提交' },
+    ],
+    [{ questionId: 'threshold', question: '阈值？', answer: '10000 元' }]
+  );
+  assert.deepEqual(merged, [
+    { questionId: 'reject', question: '驳回后？', answer: '重新提交' },
+    { questionId: 'threshold', question: '阈值？', answer: '10000 元' },
+  ]);
+  const many = Array.from({ length: 25 }, (_, index) => ({
+    questionId: `q${index}`,
+    question: `问题 ${index}`,
+    answer: '是',
+  }));
+  assert.equal(mergeClarifications([], many).length, 20);
+});
+
+test('hides answered questions and always allows a custom answer', () => {
+  const questions = resolveConfirmationQuestions(
+    {
+      missingInformation: [],
+      confirmationQuestions: [
+        {
+          id: 'threshold',
+          question: '阈值？',
+          options: [
+            { value: 'a', label: '5000' },
+            { value: 'b', label: '10000' },
+          ],
+          allowCustom: false,
+        },
+        {
+          id: 'channel',
+          question: '通知渠道？',
+          options: [
+            { value: 'mail', label: '邮件' },
+            { value: 'im', label: '企业微信' },
+          ],
+          allowCustom: false,
+        },
+      ],
+    },
+    [{ questionId: 'threshold', question: '阈值？', answer: '5000' }],
+    labels
+  );
+  assert.deepEqual(
+    questions.map((question) => [question.id, question.allowCustom]),
+    [['channel', true]]
+  );
+});
+
+test('turns missing information into answerable cards when the model gave none', () => {
+  const questions = resolveConfirmationQuestions(
+    {
+      confirmationQuestions: [],
+      missingInformation: [
+        '大额退款的金额阈值',
+        '回访的最大轮次',
+        '通知渠道',
+        '第四项',
+      ],
+    },
+    [],
+    labels
+  );
+  assert.equal(questions.length, 3);
+  assert.equal(questions[0].question, '大额退款的金额阈值');
+  assert.deepEqual(
+    questions[0].options.map((option) => option.label),
+    ['按行业常规做法补全', '先保留为待配置项']
+  );
+  assert.ok(questions.every((question) => question.allowCustom));
+
+  const answered = resolveConfirmationQuestions(
+    {
+      confirmationQuestions: [],
+      missingInformation: ['回访的最大轮次', '大额退款的金额阈值'],
+    },
+    [
+      {
+        questionId: questions[0].id,
+        question: questions[0].question,
+        answer: '2000 元',
+      },
+    ],
+    labels
+  );
+  assert.deepEqual(
+    answered.map((question) => question.question),
+    ['回访的最大轮次']
+  );
+});
+
+test('does not build cards from the outline fallback notice', () => {
+  assert.deepEqual(
+    resolveConfirmationQuestions(
+      { confirmationQuestions: [], missingInformation: ['节点细节尚未补全'] },
+      [],
+      labels,
+      { includeMissingInformation: false }
+    ),
+    []
   );
 });

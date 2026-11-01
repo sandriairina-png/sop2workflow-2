@@ -62,6 +62,8 @@ export function validateSopAnalysisGraph(input: SopAnalysis): SopAnalysis {
     }
   }
 
+  // Only business paths make a step reachable. Error outputs are wired to the
+  // shared system error handler at export, never to business steps.
   const reachable = new Set<string>();
   const queue = [analysis.steps[0].id];
   while (queue.length) {
@@ -71,17 +73,14 @@ export function validateSopAnalysisGraph(input: SopAnalysis): SopAnalysis {
     const step = analysis.steps.find((candidate) => candidate.id === id);
     if (!step) continue;
     for (const edge of step.next) queue.push(edge.targetStepId);
-    for (const error of step.errorHandling) {
-      if (error.targetStepId) queue.push(error.targetStepId);
-    }
   }
 
   const unreachable = analysis.steps.filter((step) => !reachable.has(step.id));
   if (unreachable.length) {
     throw new Error(
-      `Analysis contains unreachable steps: ${unreachable
+      `Analysis contains steps unreachable through next: ${unreachable
         .map((step) => step.id)
-        .join(', ')}.`
+        .join(', ')}. Model business exceptions as next branches.`
     );
   }
 
@@ -92,4 +91,3 @@ export function validateSopAnalysisGraph(input: SopAnalysis): SopAnalysis {
 
   return analysis;
 }
-

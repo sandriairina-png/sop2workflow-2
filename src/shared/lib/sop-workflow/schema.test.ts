@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { validateSopAnalysisGraph } from './graph';
-import { SopAnalysis, SopAnalysisSchema, SopStepSchema } from './schema';
+import {
+  classifyErrorHandling,
+  SopAnalysis,
+  SopAnalysisSchema,
+  SopStepSchema,
+} from './schema';
 
 function inventoryAnalysis(): SopAnalysis {
   return {
@@ -206,4 +211,68 @@ test('keeps 2 to 3 answer options for each confirmation question', () => {
   (invalid.confirmationQuestions as Array<{ options: unknown[] }>)[0].options =
     [{ value: 'only', label: '唯一选项' }];
   assert.throws(() => SopAnalysisSchema.parse(invalid));
+});
+
+test('rejects steps that are only reachable through error handling', () => {
+  const analysis = inventoryAnalysis();
+  analysis.steps.push({
+    ...analysis.steps[analysis.steps.length - 1],
+    id: 'orphan-alert',
+    next: [],
+  });
+  analysis.steps[0].errorHandling = [
+    {
+      scenario: 'ERP 超时',
+      action: '通知管理员',
+      targetStepId: 'orphan-alert',
+    },
+  ];
+  assert.throws(
+    () => validateSopAnalysisGraph(analysis),
+    /unreachable through next: orphan-alert/
+  );
+});
+
+test('classifies system and business exceptions', () => {
+  assert.equal(
+    classifyErrorHandling({ scenario: '信用接口查询超时', action: '告警' }),
+    'system'
+  );
+  assert.equal(
+    classifyErrorHandling({ scenario: '审批超时', action: '催办上级' }),
+    'business'
+  );
+  assert.equal(
+    classifyErrorHandling({ scenario: '库存不足', action: '生成采购需求' }),
+    'business'
+  );
+  assert.equal(
+    classifyErrorHandling({
+      kind: 'system',
+      scenario: '审批人未配置',
+      action: '通知管理员',
+    }),
+    'system'
+  );
+});
+
+test('classifies by the scenario before the remediation text', () => {
+  assert.equal(
+    classifyErrorHandling({
+      scenario: '退款金额解析为空',
+      action: '转大额人工审批确认',
+    }),
+    'system'
+  );
+  assert.equal(
+    classifyErrorHandling({
+      scenario: '审批接口调用超时',
+      action: '通知主管',
+    }),
+    'system'
+  );
+  assert.equal(
+    classifyErrorHandling({ scenario: '老板未及时响应', action: '通知主管' }),
+    'business'
+  );
 });

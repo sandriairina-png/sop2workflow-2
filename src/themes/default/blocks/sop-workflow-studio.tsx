@@ -27,6 +27,7 @@ import {
 import Aurora from '@/shared/components/ui/aurora';
 import StarBorder from '@/shared/components/ui/star-border';
 import {
+  classifyErrorHandling,
   compileN8nWorkflow,
   SOP_EXAMPLES,
   SopAnalysis,
@@ -41,6 +42,8 @@ import {
   buildClarificationAnswers,
   buildWorkflowGraphRows,
   getStepSourceBadge,
+  mergeClarifications,
+  resolveConfirmationQuestions,
   resolveWorkflowError,
   validateAnalysisDraft,
 } from './sop-workflow-studio-model';
@@ -117,6 +120,14 @@ type StudioCopy = {
   error_provider?: string;
   error_generic?: string;
   retry?: string;
+  condition_pending?: string;
+  confirmed_conditions?: string;
+  remove_condition?: string;
+  option_conventional?: string;
+  option_configure_later?: string;
+  error_kind_system?: string;
+  error_kind_business?: string;
+  system_error_handler?: string;
   details_incomplete?: string;
   complete_details?: string;
   local_session?: string;
@@ -179,6 +190,14 @@ export function SopWorkflowStudio({
   const [customAnswers, setCustomAnswers] = useState<Record<string, string>>(
     {}
   );
+  // Confirmed answers apply to the SOP text they were given for and carry
+  // over to every later regeneration (retry, complete details, more answers).
+  const [clarifications, setClarifications] = useState<SopClarification[]>([]);
+  const [clarifiedSop, setClarifiedSop] = useState('');
+  // The conditions the result on screen was actually generated with.
+  const [appliedClarifications, setAppliedClarifications] = useState<
+    SopClarification[]
+  >([]);
 
   const workflow = useMemo(
     () => (validatedAnalysis ? compileN8nWorkflow(validatedAnalysis) : null),
@@ -195,6 +214,46 @@ export function SopWorkflowStudio({
   const examples = copy.example_values?.length
     ? copy.example_values
     : SOP_EXAMPLES;
+  const confirmedConditions = useMemo(
+    () => (sop.trim() === clarifiedSop ? clarifications : []),
+    [sop, clarifiedSop, clarifications]
+  );
+  const appliedKeys = useMemo(
+    () =>
+      new Set(
+        appliedClarifications.map(
+          (item) => `${item.questionId}\u0000${item.answer}`
+        )
+      ),
+    [appliedClarifications]
+  );
+  const conditionsChanged =
+    confirmedConditions.length !== appliedKeys.size ||
+    confirmedConditions.some(
+      (item) => !appliedKeys.has(`${item.questionId}\u0000${item.answer}`)
+    );
+  const pendingQuestions = useMemo(
+    () =>
+      validatedAnalysis
+        ? resolveConfirmationQuestions(
+            validatedAnalysis,
+            confirmedConditions,
+            {
+              conventional: copy.option_conventional || 'Use common practice',
+              configureLater:
+                copy.option_configure_later || 'Keep it as a setup item',
+            },
+            { includeMissingInformation: !result?.meta.detailsIncomplete }
+          )
+        : [],
+    [
+      validatedAnalysis,
+      confirmedConditions,
+      copy.option_conventional,
+      copy.option_configure_later,
+      result?.meta.detailsIncomplete,
+    ]
+  );
 
   useEffect(() => {
     if (!copied) return;
@@ -223,14 +282,21 @@ export function SopWorkflowStudio({
     );
   }
 
-  async function generate(clarifications: SopClarification[] = []) {
-    if (!sop.trim()) {
+  async function generate(newAnswers: SopClarification[] = []) {
+    const source = sop.trim();
+    if (!source) {
       setError(copy.error_empty || 'Add an SOP before generating.');
       setErrorRetryable(false);
       textareaRef.current?.focus();
       return;
     }
 
+    const confirmed = mergeClarifications(
+      source === clarifiedSop ? clarifications : [],
+      newAnswers
+    );
+    setClarifications(confirmed);
+    setClarifiedSop(source);
     setError('');
     setErrorRetryable(false);
     setBusy(true);
@@ -242,10 +308,10 @@ export function SopWorkflowStudio({
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          sop: sop.trim(),
+          sop: source,
           locale: copy.language || 'en',
           triggerHint: mode,
-          clarifications,
+          clarifications: confirmed,
         }),
       });
       const payload = await response.json();
@@ -280,6 +346,7 @@ export function SopWorkflowStudio({
         return;
       }
       const next = payload as SopAnalysisResponse;
+      setAppliedClarifications(confirmed);
       setResult(next);
       setValidatedAnalysis(next.analysis);
       setDraftIsValid(true);
@@ -321,11 +388,16 @@ export function SopWorkflowStudio({
   function applyClarifications() {
     if (!validatedAnalysis) return;
     const answers = buildClarificationAnswers(
-      validatedAnalysis.confirmationQuestions,
+      pendingQuestions,
       selectedAnswers,
       customAnswers
     );
     if (!answers.length) {
+      // Removed or not-yet-applied conditions still need a regeneration.
+      if (conditionsChanged) {
+        void generate();
+        return;
+      }
       setError(
         copy.answer_required || 'Answer at least one question to continue.'
       );
@@ -895,20 +967,33 @@ export function SopWorkflowStudio({
                           ) : null}
                           {step.errorHandling.length ? (
                             <div className="mt-3 space-y-2 border-t border-[#ff9f9f]/15 pt-3">
-                              {step.errorHandling.map((item) => (
-                                <div
-                                  key={`${step.id}-${item.scenario}`}
-                                  className="linearity-branch-lane rounded-xl border border-[#ff9f9f]/20 bg-[#ff9f9f]/[0.05] px-3 py-2 text-[10px] leading-5 text-[#ffc5c5]"
-                                >
-                                  <span className="mr-2 font-semibold uppercase">
-                                    error
-                                  </span>
-                                  {item.scenario}: {item.action}
-                                  {item.targetStepId
-                                    ? ` → ${item.targetStepId}`
-                                    : ''}
-                                </div>
-                              ))}
+                              {step.errorHandling.map((item) => {
+                                const system =
+                                  classifyErrorHandling(item) === 'system';
+                                return (
+                                  <div
+                                    key={`${step.id}-${item.scenario}`}
+                                    className={cn(
+                                      'linearity-branch-lane rounded-xl border px-3 py-2 text-[10px] leading-5',
+                                      system
+                                        ? 'border-[#ff9f9f]/20 bg-[#ff9f9f]/[0.05] text-[#ffc5c5]'
+                                        : 'border-[#f5c46b]/20 bg-[#f5c46b]/[0.05] text-[#f5d9a3]'
+                                    )}
+                                  >
+                                    <span className="mr-2 font-semibold">
+                                      {system
+                                        ? copy.error_kind_system ||
+                                          'System error'
+                                        : copy.error_kind_business ||
+                                          'Business exception'}
+                                    </span>
+                                    {item.scenario}: {item.action}
+                                    {system
+                                      ? ` → ${copy.system_error_handler || 'System error handler'}`
+                                      : ''}
+                                  </div>
+                                );
+                              })}
                             </div>
                           ) : null}
                         </div>
@@ -919,7 +1004,9 @@ export function SopWorkflowStudio({
               </div>
             ) : (
               <div className="space-y-10 p-5 md:p-10">
-                {validatedAnalysis?.confirmationQuestions.length ? (
+                {pendingQuestions.length ||
+                confirmedConditions.length ||
+                conditionsChanged ? (
                   <section aria-labelledby="confirmation-questions-title">
                     <div className="max-w-2xl">
                       <h3
@@ -933,9 +1020,56 @@ export function SopWorkflowStudio({
                           'Your answers become confirmed conditions and regenerate the workflow.'}
                       </p>
                     </div>
-                    <div className="mt-6 grid gap-4 lg:grid-cols-2">
-                      {validatedAnalysis.confirmationQuestions.map(
-                        (question, index) => (
+                    {confirmedConditions.length ? (
+                      <div className="mt-6 rounded-2xl border border-[#9ee792]/20 bg-[#9ee792]/[0.04] p-4">
+                        <div className="mb-3 flex items-center gap-2 text-[11px] font-medium text-[#9ee792]">
+                          <CheckCircle2 className="size-3.5" />
+                          {copy.confirmed_conditions || 'Confirmed conditions'}
+                        </div>
+                        <ul className="space-y-2">
+                          {confirmedConditions.map((item) => (
+                            <li
+                              key={item.questionId}
+                              className="flex items-start justify-between gap-3 text-[11px] leading-5 text-white/60"
+                            >
+                              <span>
+                                {item.question}
+                                <span className="mx-2 text-white/30">→</span>
+                                <span className="text-white/85">
+                                  {item.answer}
+                                </span>
+                                {appliedKeys.has(
+                                  `${item.questionId}\u0000${item.answer}`
+                                ) ? null : (
+                                  <span className="ml-2 text-[#f5c46b]">
+                                    {copy.condition_pending ||
+                                      '(not applied yet)'}
+                                  </span>
+                                )}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() =>
+                                  setClarifications((current) =>
+                                    current.filter(
+                                      (candidate) =>
+                                        candidate.questionId !== item.questionId
+                                    )
+                                  )
+                                }
+                                className="shrink-0 text-white/35 transition hover:text-white disabled:opacity-50"
+                              >
+                                {copy.remove_condition || 'Remove'}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                    {pendingQuestions.length ? (
+                      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                        {pendingQuestions.map((question, index) => (
                           <fieldset
                             key={question.id}
                             className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-5"
@@ -960,6 +1094,10 @@ export function SopWorkflowStudio({
                                       ...current,
                                       [question.id]: option.value,
                                     }));
+                                    setCustomAnswers((current) => ({
+                                      ...current,
+                                      [question.id]: '',
+                                    }));
                                     setError('');
                                   }}
                                   className={cn(
@@ -973,52 +1111,48 @@ export function SopWorkflowStudio({
                                   {option.label}
                                 </button>
                               ))}
-                              {question.allowCustom ? (
-                                <button
-                                  type="button"
-                                  aria-pressed={
-                                    selectedAnswers[question.id] ===
-                                    '__custom__'
-                                  }
-                                  onClick={() =>
-                                    setSelectedAnswers((current) => ({
+                            </div>
+                            <input
+                              value={customAnswers[question.id] || ''}
+                              onChange={(event) => {
+                                const value = event.target.value;
+                                setCustomAnswers((current) => ({
+                                  ...current,
+                                  [question.id]: value,
+                                }));
+                                setSelectedAnswers((current) => {
+                                  if (value.trim()) {
+                                    return {
                                       ...current,
                                       [question.id]: '__custom__',
-                                    }))
+                                    };
                                   }
-                                  className={cn(
-                                    'rounded-full border px-3 py-2 text-[11px] transition',
-                                    selectedAnswers[question.id] ===
-                                      '__custom__'
-                                      ? 'border-white bg-white text-black'
-                                      : 'border-white/12 text-white/55 hover:border-white/25 hover:text-white'
-                                  )}
-                                >
-                                  {copy.custom_answer || 'Custom answer'}
-                                </button>
-                              ) : null}
-                            </div>
-                            {selectedAnswers[question.id] === '__custom__' ? (
-                              <input
-                                value={customAnswers[question.id] || ''}
-                                onChange={(event) =>
-                                  setCustomAnswers((current) => ({
-                                    ...current,
-                                    [question.id]: event.target.value,
-                                  }))
-                                }
-                                maxLength={1000}
-                                placeholder={
-                                  copy.custom_answer_placeholder ||
-                                  'Enter the condition in your own words'
-                                }
-                                className="mt-3 h-11 w-full rounded-xl border border-white/12 bg-black/25 px-3 text-base text-white outline-none placeholder:text-white/28 focus:border-white/30 md:text-sm"
-                              />
-                            ) : null}
+                                  if (current[question.id] !== '__custom__') {
+                                    return current;
+                                  }
+                                  const { [question.id]: _cleared, ...rest } =
+                                    current;
+                                  return rest;
+                                });
+                                setError('');
+                              }}
+                              maxLength={1000}
+                              aria-label={copy.custom_answer || 'Custom answer'}
+                              placeholder={
+                                copy.custom_answer_placeholder ||
+                                'Enter the condition in your own words'
+                              }
+                              className={cn(
+                                'mt-3 h-11 w-full rounded-xl border bg-black/25 px-3 text-base text-white transition outline-none placeholder:text-white/28 focus:border-white/30 md:text-sm',
+                                selectedAnswers[question.id] === '__custom__'
+                                  ? 'border-white/40'
+                                  : 'border-white/12'
+                              )}
+                            />
                           </fieldset>
-                        )
-                      )}
-                    </div>
+                        ))}
+                      </div>
+                    ) : null}
                     <div className="mt-5 flex flex-wrap items-center gap-3">
                       <button
                         type="button"

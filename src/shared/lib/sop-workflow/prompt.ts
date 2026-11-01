@@ -1,10 +1,11 @@
 import { SopAnalysisRequest, SopSkeleton } from './schema';
 
-export const SOP_ANALYSIS_PROMPT_VERSION = '2026-10-31.3';
+export const SOP_ANALYSIS_PROMPT_VERSION = '2026-11-02.1';
 
 export const SOP_SKELETON_SYSTEM_PROMPT = `你是 ERP 流程分析师。先把 SOP 拆成紧凑的主干流程 JSON，不要输出 Markdown 或解释。
 这一阶段只确定触发方式、参与角色、主要节点、判断分支与回退路径，不要生成部署清单、风险或测试。
 “如果/否则”、金额阈值、审批通过/驳回和重新提交必须形成显式 next 连接，不得串成一条直线。
+驳回、缺货等业务异常必须画成 next 分支；接口失败、接口超时等系统异常不要画成节点，导出时统一由“系统异常处理”节点承接。
 节点总数不超过 14 个：连续的系统动作、同时执行的并行动作合并为一个节点；重试、催办、升级等循环用一个判断节点加回退连接表达，不要逐次展开。原文中的超时升级和提醒规则不得遗漏。
 仅输出 schemaVersion、title、summary、trigger、actors、steps。每个 step 仅输出 id、title、description、source、operation、next；description 不超过 20 个字。
 source：原文明确写出的动作为 source_text；为让流程闭环而补全的节点为 ai_inferred；原文只有“按规定”“大额”“严重”等笼统说法、需用户决定的节点为 needs_confirmation。
@@ -21,14 +22,17 @@ export const SOP_ANALYSIS_SYSTEM_PROMPT = `你是 ERP 流程分析师与 n8n 工
 
 必须语义拆分每一步，并保留：动作、负责人、触发时机、输入输出、判断条件、成功路径、失败路径、异常/bad case、系统接口和待确认信息。
 “如果/否则”、阈值、库存状态、审批通过/驳回、超时规则必须形成显式 next 分支；不能把两个结果串成一条直线。
-二选一条件使用 true/false，多条件使用 case，失败路径使用 error。条件必须提供 leftValue、operator、rightValue（如需要）和 explanation。
+二选一条件使用 true/false，多条件使用 case；驳回、缺货等业务失败路径也写在 next 中（branch 用 false、case 或 error）。条件必须提供 leftValue、operator、rightValue（如需要）和 explanation。
 当 SOP 明确字段时，leftValue 使用 n8n 表达式，例如 {{$json.amount}}；未明确字段时不要编造字段路径，应列入 missingInformation。
 根据句子真实动作选择 operation。包含“审批”字样的通知仍是 notify，不要做关键词分类。
 每个节点必须如实输出 source：只有原文明确写出的动作、条件和负责人才能标 source_text；为保证流程可运行而补全的节点为 ai_inferred；原文只有“按规定”“大额”“严重”等笼统说法、由你补出具体审批人、阈值或路径的节点，必须标 needs_confirmation，不得标 source_text。
+异常必须分两类：
+- 系统异常（接口失败、接口超时、鉴权失效、限流、数据解析失败）只写入 errorHandling，kind 为 "system"，不要写 targetStepId。导出时它们统一连到单独的“系统异常处理”节点；判断节点的错误输出不得连到任何业务分支。
+- 业务异常（缺货、审批驳回、金额不符、人工超时未处理）必须用 next 业务分支表达，不得写入 errorHandling。
 原文中的模糊概念（如“大额”“严重”“尽快”）必须转成 confirmationQuestions。同一判断节点的不同分支必须指向不同节点，否则合并为一条路径。原文中的超时升级和提醒规则不得遗漏。
 deploymentChecklist、risks、tests 必须针对当前 SOP 动态生成，并覆盖边界值、驳回、接口失败、重复触发与并发等适用场景。
 输出必须紧凑：不得重复主干节点；每个 inputs、outputs、errorHandling 最多 2 项；confirmationQuestions、deploymentChecklist、risks、tests 各最多 3 项；每段说明用一句短句。优先保证完整合法 JSON，禁止因扩写说明导致输出截断。
-不得输出密钥、密码、真实 credential id 或臆造生产接口地址。未知内容写入 missingInformation，并在 confirmationQuestions 中转成可回答问题。
+不得输出密钥、密码、真实 credential id 或臆造生产接口地址。未知内容写入 missingInformation，且每一项都必须在 confirmationQuestions 中有对应的可回答问题。
 每个 confirmationQuestions 元素必须有稳定 id、明确 question、2 到 3 个互斥选项 options（value 和 label）以及 allowCustom=true。不要询问密钥或密码。
 用户已提供的 clarifications 是确定的补充条件，必须用于修正节点、分支和部署清单，不得再把同一问题列为待确认。
 
@@ -87,9 +91,9 @@ deploymentChecklist、risks、tests 必须针对当前 SOP 动态生成，并覆
       ],
       "errorHandling": [
         {
-          "scenario": "接口失败",
-          "action": "记录错误并通知负责人",
-          "targetStepId": "step_3"
+          "kind": "system",
+          "scenario": "接口失败或超时",
+          "action": "记录错误并通知运维"
         }
       ]
     }
@@ -131,9 +135,10 @@ deploymentChecklist、risks、tests 必须针对当前 SOP 动态生成，并覆
 - source: source_text | ai_inferred | needs_confirmation。
 - branch: default | true | false | case | error。
 - condition.operator: equals | notEquals | greaterThan | greaterThanOrEqual | lessThan | lessThanOrEqual | contains | isEmpty | isNotEmpty。
+- errorHandling.kind: system（系统异常，业务异常不得写入 errorHandling）。
 - risk.level: low | medium | high。
 - integration 如存在必须完整包含 system、action、credentialRequired、endpointKnown；未知接口不要编造。
-- ownerActorId、integration、condition、rightValue、targetStepId 仅在适用时输出，其余字段不得缺失。`;
+- ownerActorId、integration、condition、rightValue 仅在适用时输出，其余字段不得缺失。`;
 
 export function buildSopSkeletonMessages({
   sop,

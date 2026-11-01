@@ -422,3 +422,140 @@ test('returns the validated skeleton when detail generation keeps failing', asyn
   );
   assert.equal(result.analysis.missingInformation.length, 1);
 });
+
+test('classifies model error handling before validation', async () => {
+  const modelOutput = {
+    ...validAnalysis,
+    steps: [
+      {
+        ...validAnalysis.steps[0],
+        id: 'check',
+        title: '信用校验',
+        operation: 'condition',
+        next: [
+          {
+            targetStepId: 'done',
+            label: '额度充足',
+            branch: 'true',
+            condition: {
+              leftValue: '{{$json.credit}}',
+              operator: 'greaterThan',
+              rightValue: 0,
+              explanation: '额度充足',
+            },
+          },
+          {
+            targetStepId: 'done',
+            label: '驳回',
+            branch: '驳回',
+            condition: {
+              leftValue: '{{$json.credit}}',
+              operator: 'lessThanOrEqual',
+              rightValue: 0,
+              explanation: '额度不足',
+            },
+          },
+        ],
+        errorHandling: [
+          {
+            scenario: '信用接口查询超时',
+            action: '告警',
+            targetStepId: 'done',
+          },
+          { scenario: '审批超时', action: '催办上级', targetStepId: 'done' },
+        ],
+      },
+      validAnalysis.steps[0],
+    ],
+  };
+  let calls = 0;
+  const result = await analyzeSopWithEvolink(
+    { sop: '校验信用。', locale: 'zh', triggerHint: 'auto' },
+    {
+      apiKey: 'test-provider-key',
+      fetch: async () => {
+        calls += 1;
+        return response(
+          JSON.stringify(calls === 1 ? validSkeleton : modelOutput)
+        );
+      },
+    }
+  );
+  const [check] = result.analysis.steps;
+  assert.equal(check.next[1].branch, 'error');
+  assert.deepEqual(check.errorHandling, [
+    { scenario: '信用接口查询超时', action: '告警', kind: 'system' },
+    {
+      scenario: '审批超时',
+      action: '催办上级',
+      targetStepId: 'done',
+      kind: 'business',
+    },
+  ]);
+});
+
+test('maps n8n operator names and keeps null entries on the repair path', async () => {
+  const withAlias = {
+    ...validAnalysis,
+    steps: [
+      {
+        ...validAnalysis.steps[0],
+        id: 'check',
+        operation: 'condition',
+        next: [
+          {
+            targetStepId: 'done',
+            label: '大额',
+            branch: 'yes',
+            condition: {
+              leftValue: '{{$json.amount}}',
+              operator: 'gte',
+              rightValue: 50000,
+              explanation: '金额大于等于 5 万',
+            },
+          },
+          {
+            targetStepId: 'done',
+            label: '小额',
+            branch: 'no',
+            condition: {
+              leftValue: '{{$json.amount}}',
+              operator: 'lt',
+              rightValue: 50000,
+              explanation: '金额小于 5 万',
+            },
+          },
+        ],
+      },
+      validAnalysis.steps[0],
+    ],
+  };
+  let calls = 0;
+  const result = await analyzeSopWithEvolink(
+    { sop: '按金额分支。', locale: 'zh', triggerHint: 'auto' },
+    {
+      apiKey: 'test-provider-key',
+      fetch: async () => {
+        calls += 1;
+        if (calls === 1) return response(JSON.stringify(validSkeleton));
+        if (calls === 2)
+          return response(
+            JSON.stringify({
+              ...validAnalysis,
+              steps: [{ ...validAnalysis.steps[0], errorHandling: [null] }],
+            })
+          );
+        return response(JSON.stringify(withAlias));
+      },
+    }
+  );
+  assert.equal(calls, 3);
+  const [check] = result.analysis.steps;
+  assert.deepEqual(
+    check.next.map((edge) => [edge.branch, edge.condition?.operator]),
+    [
+      ['true', 'greaterThanOrEqual'],
+      ['false', 'lessThan'],
+    ]
+  );
+});
