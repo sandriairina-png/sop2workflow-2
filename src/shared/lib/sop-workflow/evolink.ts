@@ -1,18 +1,24 @@
+import { z } from 'zod';
+
 import { validateSopAnalysisGraph } from './graph';
 import {
-  buildSopDetailMessages,
+  buildSopPlanMessages,
   buildSopSkeletonMessages,
+  buildSopStepDetailMessages,
   SOP_ANALYSIS_PROMPT_VERSION,
   SOP_SKELETON_COMPACT_RETRY_PROMPT,
 } from './prompt';
 import {
   classifyErrorHandling,
+  ConfirmationQuestionSchema,
   SopAnalysis,
   SopAnalysisRequest,
   SopAnalysisResponse,
   SopAnalysisSchema,
+  SopErrorHandlingSchema,
   SopSkeleton,
   SopSkeletonSchema,
+  SopStepSchema,
   SopStepSourceSchema,
 } from './schema';
 
@@ -21,7 +27,8 @@ export const EVOLINK_DEFAULT_URL =
 export const EVOLINK_DEFAULT_MODEL = 'gemini-3.8-flash';
 export const EVOLINK_DEFAULT_MAX_TOKENS = 6000;
 export const EVOLINK_SKELETON_MAX_TOKENS = 4000;
-export const EVOLINK_DETAIL_MAX_TOKENS = 6000;
+export const EVOLINK_STEP_DETAIL_MAX_TOKENS = 3500;
+export const EVOLINK_PLAN_MAX_TOKENS = 2500;
 export const EVOLINK_DEFAULT_TIMEOUT_MS = 65_000;
 const SKELETON_TIMEOUT_MS = 23_000;
 const DETAIL_TIMEOUT_MS = 50_000;
@@ -185,7 +192,9 @@ function normalizedBranch(
   if (['default', 'true', 'false', 'case', 'error'].includes(text)) {
     return text;
   }
-  if (/异常|错误|失败|驳回|error/.test(text)) return 'error';
+  if (text === 'yes') return 'true';
+  if (text === 'no') return 'false';
+  if (/异常|错误|失败|驳回|拒绝|error/.test(text)) return 'error';
   if (/否则|不满足|假|否|false/.test(text)) return 'false';
   if (/满足|真|是|通过|true/.test(text)) return 'true';
   if (operation === 'condition') {
@@ -214,21 +223,6 @@ const OPERATOR_ALIASES: Record<string, string> = {
   empty: 'isEmpty',
   isnotempty: 'isNotEmpty',
   notempty: 'isNotEmpty',
-};
-
-const BRANCH_ALIASES: Record<string, string> = {
-  default: 'default',
-  true: 'true',
-  false: 'false',
-  case: 'case',
-  error: 'error',
-  yes: 'true',
-  no: 'false',
-  是: 'true',
-  否: 'false',
-  通过: 'true',
-  驳回: 'error',
-  拒绝: 'error',
 };
 
 function normalizedOperator(value: unknown) {
@@ -350,58 +344,6 @@ function normalizedErrorKind(value: unknown) {
   return undefined;
 }
 
-// The detail stage gets strict normalization: only unambiguous aliases are
-// mapped, so anything else still fails validation and goes through repair.
-// System errors are wired to the shared handler at export, so their
-// targetStepId (usually a business step) is dropped.
-function normalizeAnalysis(raw: unknown) {
-  if (!isRecord(raw) || !Array.isArray(raw.steps)) return raw;
-  return {
-    ...raw,
-    steps: raw.steps.map((step) => {
-      if (!isRecord(step)) return step;
-      return {
-        ...step,
-        next: Array.isArray(step.next)
-          ? step.next.map((edge) => {
-              if (!isRecord(edge)) return edge;
-              const branch =
-                BRANCH_ALIASES[String(edge.branch ?? '').toLowerCase()];
-              const condition = isRecord(edge.condition)
-                ? {
-                    ...edge.condition,
-                    operator:
-                      OPERATOR_ALIASES[
-                        String(edge.condition.operator ?? '').toLowerCase()
-                      ] || edge.condition.operator,
-                  }
-                : edge.condition;
-              return {
-                ...edge,
-                branch: branch || edge.branch,
-                ...(condition === undefined ? {} : { condition }),
-              };
-            })
-          : step.next,
-        errorHandling: Array.isArray(step.errorHandling)
-          ? step.errorHandling.map((item) => {
-              if (!isRecord(item)) return item;
-              const kind =
-                normalizedErrorKind(item.kind) ||
-                classifyErrorHandling({
-                  scenario: String(item.scenario || ''),
-                  action: String(item.action || ''),
-                });
-              if (kind === 'business') return { ...item, kind };
-              const { targetStepId: _target, ...rest } = item;
-              return { ...rest, kind };
-            })
-          : step.errorHandling,
-      };
-    }),
-  };
-}
-
 function parseSkeleton(payload: ProviderPayload) {
   const content = payload.choices?.[0]?.message?.content;
   if (!content)
@@ -437,51 +379,6 @@ function remainingTimeout(deadline: number, phaseLimit: number) {
   return Math.max(1, Math.min(phaseLimit, remaining));
 }
 
-function parseAnalysis(payload: ProviderPayload) {
-  const content = payload.choices?.[0]?.message?.content;
-  if (!content)
-    throw new EvolinkError('invalid_output', 'Model output is empty.');
-
-  let raw: unknown;
-  try {
-    raw = JSON.parse(extractJson(content));
-  } catch {
-    throw new EvolinkError(
-      'invalid_output',
-      `The response is not valid JSON.${outputDiagnostics(payload)}`
-    );
-  }
-
-  let normalized: unknown;
-  try {
-    normalized = normalizeAnalysis(raw);
-  } catch {
-    throw new EvolinkError('invalid_output', 'The response could not be read.');
-  }
-  const parsed = SopAnalysisSchema.safeParse(normalized);
-  if (!parsed.success) {
-    const issues = parsed.error.issues
-      .slice(0, 12)
-      .map((issue) => `${issue.path.join('.') || 'root'}: ${issue.message}`)
-      .join('; ');
-    throw new EvolinkError(
-      'invalid_output',
-      `Schema validation failed: ${issues}`
-    );
-  }
-
-  try {
-    return validateSopAnalysisGraph(parsed.data);
-  } catch (error) {
-    throw new EvolinkError(
-      'invalid_output',
-      `Graph validation failed: ${
-        error instanceof Error ? error.message : 'unknown graph error'
-      }`
-    );
-  }
-}
-
 export async function analyzeSopWithEvolink(
   input: SopAnalysisRequest,
   deps: EvolinkDeps = {}
@@ -506,6 +403,22 @@ export async function analyzeSopWithEvolink(
     timeoutMs: remainingTimeout(deadline, SKELETON_TIMEOUT_MS),
     reasoningEffort: 'low' as const,
   });
+  // The skeleton fixes the workflow graph, so check it here while a retry is
+  // still possible.
+  const readSkeleton = (payload: ProviderPayload) => {
+    const skeleton = parseSkeleton(payload);
+    try {
+      mergeAnalysis(skeleton, undefined, undefined, input.locale);
+    } catch (error) {
+      throw new EvolinkError(
+        'invalid_output',
+        `Skeleton graph is invalid: ${
+          error instanceof Error ? error.message : 'unknown graph error'
+        }`
+      );
+    }
+    return skeleton;
+  };
   let skeleton: SopSkeleton;
   try {
     const payload = await requestProvider(
@@ -514,7 +427,7 @@ export async function analyzeSopWithEvolink(
       skeletonLimits()
     );
     usage = addUsage(usage, usageOf(payload));
-    skeleton = parseSkeleton(payload);
+    skeleton = readSkeleton(payload);
   } catch (error) {
     if (!(error instanceof EvolinkError) || error.code === 'not_configured') {
       throw error;
@@ -527,109 +440,288 @@ export async function analyzeSopWithEvolink(
     const payload = await requestProvider(
       [
         ...skeletonMessages,
-        { role: 'user', content: SOP_SKELETON_COMPACT_RETRY_PROMPT },
+        {
+          role: 'user',
+          content: `${SOP_SKELETON_COMPACT_RETRY_PROMPT}上次的问题：${error.message}`,
+        },
       ],
       config,
       skeletonLimits()
     );
     usage = addUsage(usage, usageOf(payload));
-    skeleton = parseSkeleton(payload);
+    skeleton = readSkeleton(payload);
   }
 
-  const meta = (requestId: string | undefined) => ({
-    model: config.model,
-    promptVersion: SOP_ANALYSIS_PROMPT_VERSION,
-    requestId: requestId || crypto.randomUUID(),
-    usage,
-  });
-  const messages = buildSopDetailMessages(input, skeleton);
-  const detailLimits = () => ({
-    maxTokens: Math.min(EVOLINK_DETAIL_MAX_TOKENS, config.maxTokens),
+  // Stage 2: node details and the rollout plan are independent, so they run in
+  // parallel and the skeleton is never rewritten. A failed part degrades the
+  // result instead of failing the request.
+  const partLimits = (maxTokens: number) => () => ({
+    maxTokens: Math.min(maxTokens, config.maxTokens),
     timeoutMs: remainingTimeout(deadline, DETAIL_TIMEOUT_MS),
     reasoningEffort: 'low' as const,
   });
-  try {
-    const first = await requestProvider(messages, config, detailLimits());
-    usage = addUsage(usage, usageOf(first));
-    let repairReason: string;
+  const requestPart = async <T>(
+    messages: Array<{ role: string; content: string }>,
+    limits: () => {
+      maxTokens: number;
+      timeoutMs: number;
+      reasoningEffort: 'low';
+    },
+    read: (raw: Record<string, unknown>) => T
+  ) => {
+    const payload = await requestProvider(messages, config, limits());
+    usage = addUsage(usage, usageOf(payload));
     try {
-      return { analysis: parseAnalysis(first), meta: meta(first.id) };
+      return read(parsePartJson(payload));
     } catch (error) {
       if (!(error instanceof EvolinkError) || error.code !== 'invalid_output') {
         throw error;
       }
-      repairReason = error.message;
+      const repaired = await requestProvider(
+        [
+          ...messages,
+          {
+            role: 'user',
+            content: `上一个结果无法解析（${error.message}）。请按 system 消息中的结构只返回完整 JSON 对象，不要解释、不要 Markdown。`,
+          },
+        ],
+        config,
+        limits()
+      );
+      usage = addUsage(usage, usageOf(repaired));
+      return read(parsePartJson(repaired));
     }
-
-    const repaired = await requestProvider(
-      [
-        ...messages,
-        {
-          role: 'assistant',
-          content: first.choices?.[0]?.message?.content || '',
-        },
-        {
-          role: 'user',
-          content: `上一个 JSON 不符合指定 schema 或图连通规则。校验错误：${repairReason}。请严格依据 system 消息中的 JSON 模板修复，补齐全部必填字段，并只返回完整 JSON。`,
-        },
-      ],
-      config,
-      detailLimits()
-    );
-    usage = addUsage(usage, usageOf(repaired));
-    return {
-      analysis: parseAnalysis(repaired),
-      meta: meta(repaired.id || first.id),
-    };
-  } catch (error) {
-    if (!(error instanceof EvolinkError)) throw error;
-    // The skeleton is already a valid workflow; return it rather than failing the whole request.
-    const outline = analysisFromSkeleton(skeleton, input.locale);
-    if (!outline) throw error;
+  };
+  const [details, plan] = await Promise.allSettled([
+    requestPart(
+      buildSopStepDetailMessages(input, skeleton),
+      partLimits(EVOLINK_STEP_DETAIL_MAX_TOKENS),
+      readStepDetails
+    ),
+    requestPart(
+      buildSopPlanMessages(input, skeleton),
+      partLimits(EVOLINK_PLAN_MAX_TOKENS),
+      readPlan
+    ),
+  ]);
+  for (const [part, outcome] of [
+    ['steps', details],
+    ['plan', plan],
+  ] as const) {
+    if (outcome.status === 'fulfilled') continue;
+    if (!(outcome.reason instanceof EvolinkError)) throw outcome.reason;
     console.warn('sop_workflow_detail_fallback', {
-      code: error.code,
-      reason: error.message,
+      part,
+      code: outcome.reason.code,
+      reason: outcome.reason.message,
     });
-    return {
-      analysis: outline,
-      meta: { ...meta(undefined), detailsIncomplete: true },
-    };
   }
+
+  const analysis = mergeAnalysis(
+    skeleton,
+    details.status === 'fulfilled' ? details.value : undefined,
+    plan.status === 'fulfilled' ? plan.value : undefined,
+    input.locale
+  );
+  const incomplete =
+    details.status === 'rejected' || plan.status === 'rejected';
+  return {
+    analysis,
+    meta: {
+      model: config.model,
+      promptVersion: SOP_ANALYSIS_PROMPT_VERSION,
+      requestId: crypto.randomUUID(),
+      usage,
+      ...(incomplete ? { detailsIncomplete: true } : {}),
+    },
+  };
 }
 
-function analysisFromSkeleton(
-  skeleton: SopSkeleton,
-  locale: SopAnalysisRequest['locale']
-): SopAnalysis | undefined {
-  const zh = locale === 'zh';
-  try {
-    return validateSopAnalysisGraph({
-      ...skeleton,
-      steps: skeleton.steps.map(({ source, ...step }) => ({
-        ...step,
-        source: source || 'ai_inferred',
-        inputs: [],
-        outputs: [],
-        errorHandling: [],
-      })),
-      assumptions: [],
-      missingInformation: [
-        zh
-          ? '节点负责人、输入输出与异常处理尚未补全，可重新生成以补全细节。'
-          : 'Owners, inputs, outputs and error handling are not filled in yet. Regenerate to complete them.',
-      ],
-      confirmationQuestions: [],
-      deploymentChecklist: [
-        zh
-          ? '导入 n8n 后，为每个系统节点配置凭证与字段映射。'
-          : 'After importing into n8n, configure credentials and field mappings for each system node.',
-      ],
-      risks: [],
-      tests: [],
-    });
-  } catch {
-    return undefined;
+function parsePartJson(payload: ProviderPayload) {
+  const content = payload.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new EvolinkError('invalid_output', 'Model output is empty.');
   }
+  let raw: unknown;
+  try {
+    raw = JSON.parse(extractJson(content));
+  } catch {
+    throw new EvolinkError(
+      'invalid_output',
+      `The response is not valid JSON.${outputDiagnostics(payload)}`
+    );
+  }
+  if (!isRecord(raw)) {
+    throw new EvolinkError('invalid_output', 'The response is not an object.');
+  }
+  return raw;
+}
+
+const StepDetailSchema = z.object({
+  id: z.string().min(1),
+  source: SopStepSourceSchema.optional(),
+  ownerActorId: z.string().min(1).optional(),
+  integration: SopStepSchema.shape.integration,
+  inputs: z.array(z.string()).optional(),
+  outputs: z.array(z.string()).optional(),
+  errorHandling: z.array(SopErrorHandlingSchema).optional(),
+});
+type StepDetail = z.infer<typeof StepDetailSchema>;
+
+type RolloutPlan = Pick<
+  SopAnalysis,
+  | 'assumptions'
+  | 'missingInformation'
+  | 'confirmationQuestions'
+  | 'deploymentChecklist'
+  | 'risks'
+  | 'tests'
+>;
+
+// Keep every entry that validates instead of rejecting the whole part.
+function validItems<T>(
+  value: unknown,
+  schema: z.ZodType<T>,
+  prepare: (item: unknown) => unknown = (item) => item
+): T[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    const parsed = schema.safeParse(prepare(item));
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
+function readStepDetails(raw: Record<string, unknown>): StepDetail[] {
+  if (!Array.isArray(raw.steps)) {
+    throw new EvolinkError('invalid_output', 'Step details have no steps.');
+  }
+  return validItems(raw.steps, StepDetailSchema, (step) => {
+    if (!isRecord(step)) return step;
+    const source = SopStepSourceSchema.safeParse(step.source);
+    return {
+      ...step,
+      source: source.success ? source.data : undefined,
+      errorHandling: Array.isArray(step.errorHandling)
+        ? step.errorHandling.filter(isRecord).map((item) => ({
+            ...item,
+            kind:
+              normalizedErrorKind(item.kind) ||
+              classifyErrorHandling({
+                scenario: String(item.scenario || ''),
+                action: String(item.action || ''),
+              }),
+          }))
+        : undefined,
+    };
+  });
+}
+
+const PLAN_LIMIT = 5;
+
+function readPlan(raw: Record<string, unknown>): RolloutPlan {
+  const text = z.string().trim().min(1);
+  const shape = SopAnalysisSchema.shape;
+  return {
+    assumptions: validItems(raw.assumptions, text).slice(0, PLAN_LIMIT),
+    missingInformation: validItems(raw.missingInformation, text).slice(
+      0,
+      PLAN_LIMIT
+    ),
+    confirmationQuestions: validItems(
+      raw.confirmationQuestions,
+      ConfirmationQuestionSchema,
+      (question) => {
+        if (!isRecord(question)) return question;
+        const options = Array.isArray(question.options)
+          ? question.options
+              .map((option) =>
+                typeof option === 'string'
+                  ? { value: option, label: option }
+                  : option
+              )
+              .slice(0, 3)
+          : question.options;
+        return {
+          ...question,
+          id: question.id || question.question,
+          options,
+          allowCustom: true,
+        };
+      }
+    ).slice(0, PLAN_LIMIT),
+    deploymentChecklist: validItems(raw.deploymentChecklist, text).slice(
+      0,
+      PLAN_LIMIT
+    ),
+    risks: validItems(raw.risks, shape.risks.element, (risk) =>
+      isRecord(risk)
+        ? { ...risk, level: String(risk.level || 'medium').toLowerCase() }
+        : risk
+    ).slice(0, PLAN_LIMIT),
+    tests: validItems(raw.tests, shape.tests.element).slice(0, PLAN_LIMIT),
+  };
+}
+
+// Combine the skeleton (graph) with optional details and plan. Without them
+// the result is still a valid, exportable outline.
+function mergeAnalysis(
+  skeleton: SopSkeleton,
+  details: StepDetail[] | undefined,
+  plan: RolloutPlan | undefined,
+  locale: SopAnalysisRequest['locale']
+): SopAnalysis {
+  const zh = locale === 'zh';
+  const byId = new Map((details || []).map((detail) => [detail.id, detail]));
+  const actorIds = new Set(skeleton.actors.map((actor) => actor.id));
+  const stepIds = new Set(skeleton.steps.map((step) => step.id));
+  return validateSopAnalysisGraph({
+    ...skeleton,
+    steps: skeleton.steps.map(({ source, ...step }) => {
+      const detail = byId.get(step.id);
+      return {
+        ...step,
+        source: detail?.source || source || 'ai_inferred',
+        ...(detail?.ownerActorId && actorIds.has(detail.ownerActorId)
+          ? { ownerActorId: detail.ownerActorId }
+          : {}),
+        ...(detail?.integration ? { integration: detail.integration } : {}),
+        inputs: detail?.inputs?.slice(0, 3) || [],
+        outputs: detail?.outputs?.slice(0, 3) || [],
+        // System errors go to the shared handler at export, so only a
+        // business exception may keep a target step.
+        errorHandling: (detail?.errorHandling || [])
+          .slice(0, 3)
+          .map(({ targetStepId, ...item }) =>
+            targetStepId &&
+            stepIds.has(targetStepId) &&
+            classifyErrorHandling(item) === 'business'
+              ? { ...item, targetStepId }
+              : item
+          ),
+      };
+    }),
+    assumptions: plan?.assumptions || [],
+    missingInformation: [
+      ...(plan?.missingInformation || []),
+      ...(details
+        ? []
+        : [
+            zh
+              ? '节点负责人、输入输出与异常处理尚未补全，可重新生成以补全细节。'
+              : 'Owners, inputs, outputs and error handling are not filled in yet. Regenerate to complete them.',
+          ]),
+    ],
+    confirmationQuestions: plan?.confirmationQuestions || [],
+    deploymentChecklist: plan?.deploymentChecklist.length
+      ? plan.deploymentChecklist
+      : [
+          zh
+            ? '导入 n8n 后，为每个系统节点配置凭证与字段映射。'
+            : 'After importing into n8n, configure credentials and field mappings for each system node.',
+        ],
+    risks: plan?.risks || [],
+    tests: plan?.tests || [],
+  });
 }
 
 function addUsage(

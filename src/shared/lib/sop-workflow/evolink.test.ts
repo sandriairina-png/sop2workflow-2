@@ -5,36 +5,11 @@ import {
   analyzeSopWithEvolink,
   EVOLINK_DEFAULT_MAX_TOKENS,
   EVOLINK_DEFAULT_TIMEOUT_MS,
-  EVOLINK_DETAIL_MAX_TOKENS,
+  EVOLINK_PLAN_MAX_TOKENS,
+  EVOLINK_SKELETON_MAX_TOKENS,
+  EVOLINK_STEP_DETAIL_MAX_TOKENS,
 } from './evolink';
 import type { SopSkeleton } from './schema';
-
-const validAnalysis = {
-  schemaVersion: '1.0',
-  title: '测试',
-  summary: '测试',
-  trigger: { type: 'manual', description: '人工触发' },
-  actors: [],
-  steps: [
-    {
-      id: 'done',
-      title: '完成',
-      description: '完成',
-      source: 'source_text',
-      operation: 'end',
-      inputs: [],
-      outputs: [],
-      next: [],
-      errorHandling: [],
-    },
-  ],
-  assumptions: [],
-  missingInformation: [],
-  confirmationQuestions: [],
-  deploymentChecklist: [],
-  risks: [],
-  tests: [],
-};
 
 const validSkeleton = {
   schemaVersion: '1.0',
@@ -49,179 +24,286 @@ const validSkeleton = {
       id: 'submit',
       title: '提交报销',
       description: '提交金额与凭证',
+      source: 'source_text',
       operation: 'write',
+      next: [{ targetStepId: 'review', label: '进入审批', branch: 'default' }],
+    },
+    {
+      id: 'review',
+      title: '金额判断',
+      description: '按金额分支',
+      operation: 'condition',
       next: [
         {
-          targetStepId: 'review',
-          label: '进入审批',
-          branch: 'default',
+          targetStepId: 'done',
+          label: '大额',
+          branch: 'true',
+          condition: {
+            leftValue: '{{$json.amount}}',
+            operator: 'greaterThanOrEqual',
+            rightValue: 5000,
+            explanation: '金额大于等于 5000',
+          },
+        },
+        {
+          targetStepId: 'done',
+          label: '小额',
+          branch: 'false',
+          condition: {
+            leftValue: '{{$json.amount}}',
+            operator: 'lessThan',
+            rightValue: 5000,
+            explanation: '金额小于 5000',
+          },
         },
       ],
     },
     {
-      id: 'review',
-      title: '审批',
-      description: '按金额进入对应审批路径',
-      operation: 'condition',
+      id: 'done',
+      title: '完成',
+      description: '流程结束',
+      operation: 'end',
       next: [],
     },
   ],
 };
 
-function response(content: string) {
+const validDetails = {
+  steps: [
+    {
+      id: 'submit',
+      source: 'source_text',
+      ownerActorId: 'employee',
+      inputs: ['报销单'],
+      outputs: ['审批任务'],
+      errorHandling: [
+        { kind: 'system', scenario: 'ERP 接口超时', action: '通知运维' },
+      ],
+    },
+    { id: 'review', source: 'source_text', inputs: [], outputs: [] },
+  ],
+};
+
+const validPlan = {
+  assumptions: ['金额字段为人民币'],
+  missingInformation: ['财务总监审批阈值'],
+  confirmationQuestions: [
+    {
+      id: 'threshold',
+      question: '财务总监审批阈值是多少？',
+      options: [
+        { value: '5000', label: '5000 元及以上' },
+        { value: '10000', label: '10000 元及以上' },
+      ],
+      allowCustom: true,
+    },
+  ],
+  deploymentChecklist: ['配置 ERP 凭证'],
+  risks: [
+    {
+      level: 'medium',
+      title: '重复提交',
+      description: '同一单据被提交两次',
+      mitigation: '按单号幂等',
+    },
+  ],
+  tests: [{ name: '边界值', input: '5000', expected: '进入总监审批' }],
+};
+
+function response(content: string, finishReason = 'stop') {
   return new Response(
     JSON.stringify({
       id: 'provider-request',
-      choices: [{ message: { content } }],
-      usage: {
-        prompt_tokens: 120,
-        completion_tokens: 80,
-        total_tokens: 200,
-      },
+      choices: [{ message: { content }, finish_reason: finishReason }],
+      usage: { prompt_tokens: 120, completion_tokens: 80, total_tokens: 200 },
     }),
     { status: 200, headers: { 'content-type': 'application/json' } }
   );
 }
 
-test('calls the configured EvoLink route with bounded JSON-only input', async () => {
-  let request: { url: string; init: RequestInit } | undefined;
-  let calls = 0;
-  const result = await analyzeSopWithEvolink(
-    { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
-    {
-      apiKey: 'test-provider-key',
-      fetch: async (url, init) => {
-        calls += 1;
-        request = { url: String(url), init: init || {} };
-        return response(
-          JSON.stringify(calls === 1 ? validSkeleton : validAnalysis)
-        );
-      },
-    }
-  );
+type Body = {
+  max_tokens: number;
+  reasoning_effort?: string;
+  temperature?: number;
+  response_format: { type: string };
+  messages: Array<{ role: string; content: string }>;
+};
 
-  assert.equal(request?.url, 'https://direct.evolink.ai/v1/chat/completions');
+// Routes each request by stage, since the two detail requests run in parallel.
+function provider(
+  handlers: Partial<
+    Record<'skeleton' | 'steps' | 'plan', (attempt: number) => Response>
+  >
+) {
+  const bodies: Array<{ stage: string; body: Body; url: string }> = [];
+  const attempts = { skeleton: 0, steps: 0, plan: 0 };
+  const fetch = async (url: string | URL | Request, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body)) as Body;
+    const task = JSON.parse(body.messages[1].content).task;
+    const stage =
+      task === 'outline_erp_sop'
+        ? 'skeleton'
+        : task === 'detail_erp_sop_steps'
+          ? 'steps'
+          : 'plan';
+    bodies.push({ stage, body, url: String(url) });
+    attempts[stage] += 1;
+    const handler = handlers[stage];
+    if (handler) return handler(attempts[stage]);
+    return response(
+      JSON.stringify(
+        stage === 'skeleton'
+          ? validSkeleton
+          : stage === 'steps'
+            ? validDetails
+            : validPlan
+      )
+    );
+  };
+  return { fetch, bodies, attempts };
+}
+
+const input = {
+  sop: '金额低于 5000 元由主管审批，否则由财务总监审批。',
+  locale: 'zh' as const,
+  triggerHint: 'manual' as const,
+};
+
+test('calls the configured EvoLink route with bounded JSON-only input', async () => {
+  const mock = provider({});
+  const result = await analyzeSopWithEvolink(input, {
+    apiKey: 'test-provider-key',
+    fetch: mock.fetch,
+  });
   assert.equal(
-    (request?.init.headers as Record<string, string>).Authorization,
-    'Bearer test-provider-key'
+    mock.bodies[0].url,
+    'https://direct.evolink.ai/v1/chat/completions'
   );
-  const body = JSON.parse(String(request?.init.body));
-  assert.equal(body.model, 'gemini-3.8-flash');
-  assert.equal(body.max_tokens, 6000);
-  assert.equal(body.temperature, undefined);
-  assert.equal(body.reasoning_effort, 'low');
-  assert.equal(body.response_format.type, 'json_object');
-  assert.equal(result.meta.usage.totalTokens, 400);
-  assert.equal(result.analysis.steps[0].id, 'done');
+  for (const { body } of mock.bodies) {
+    assert.equal(body.temperature, undefined);
+    assert.equal(body.reasoning_effort, 'low');
+    assert.equal(body.response_format.type, 'json_object');
+  }
+  const limits = Object.fromEntries(
+    mock.bodies.map(({ stage, body }) => [stage, body.max_tokens])
+  );
+  assert.deepEqual(limits, {
+    skeleton: EVOLINK_SKELETON_MAX_TOKENS,
+    steps: EVOLINK_STEP_DETAIL_MAX_TOKENS,
+    plan: EVOLINK_PLAN_MAX_TOKENS,
+  });
+  assert.equal(result.meta.usage.totalTokens, 600);
+  assert.equal(result.meta.detailsIncomplete, undefined);
   assert.equal(EVOLINK_DEFAULT_MAX_TOKENS, 6000);
-  assert.equal(EVOLINK_DETAIL_MAX_TOKENS, 6000);
   assert.equal(EVOLINK_DEFAULT_TIMEOUT_MS, 65_000);
 });
 
-test('generates a compact skeleton before requesting node details', async () => {
-  const bodies: Array<{
-    max_tokens: number;
-    messages: Array<{ role: string; content: string }>;
-  }> = [];
-  let calls = 0;
-
+test('merges the skeleton with step details and the rollout plan', async () => {
+  const mock = provider({});
   const result = await analyzeSopWithEvolink(
     {
-      sop: '金额低于 5000 元由主管审批，否则由财务总监审批；驳回后补充材料重新提交。',
-      locale: 'zh',
-      triggerHint: 'manual',
+      ...input,
+      clarifications: [
+        { questionId: 'channel', question: '通知渠道？', answer: '企业微信' },
+      ],
     },
-    {
-      apiKey: 'test-provider-key',
-      fetch: async (_url, init) => {
-        calls += 1;
-        bodies.push(JSON.parse(String(init?.body)));
-        return calls === 1
-          ? response(JSON.stringify(validSkeleton))
-          : response(JSON.stringify(validAnalysis));
-      },
-    }
+    { apiKey: 'test-provider-key', fetch: mock.fetch }
   );
-
-  assert.equal(calls, 2);
-  assert.ok(bodies[0].max_tokens < bodies[1].max_tokens);
-  assert.equal(
-    (bodies[0] as { reasoning_effort?: string }).reasoning_effort,
-    'low'
+  assert.deepEqual(
+    mock.bodies.map(({ stage }) => stage),
+    ['skeleton', 'steps', 'plan']
   );
-  const detailRequest = JSON.parse(bodies[1].messages.at(-1)?.content || '{}');
-  assert.equal(detailRequest.task, 'enrich_erp_sop_skeleton');
-  assert.equal(detailRequest.skeleton.steps[0].id, 'submit');
-  assert.equal(result.analysis.title, '测试');
-  assert.equal(result.meta.usage.totalTokens, 400);
+  for (const { body } of mock.bodies) {
+    const request = JSON.parse(body.messages[1].content);
+    assert.equal(request.clarifications[0].answer, '企业微信');
+  }
+  for (const { body } of mock.bodies.slice(1)) {
+    const request = JSON.parse(body.messages[1].content);
+    assert.equal(request.skeleton.steps[0].id, 'submit');
+  }
+  const [submit, review, done] = result.analysis.steps;
+  assert.equal(submit.title, '提交报销');
+  assert.equal(submit.ownerActorId, 'employee');
+  assert.deepEqual(submit.inputs, ['报销单']);
+  assert.equal(submit.errorHandling[0].kind, 'system');
+  assert.equal(review.next.length, 2);
+  assert.equal(done.source, 'ai_inferred');
+  assert.equal(result.analysis.confirmationQuestions[0].id, 'threshold');
+  assert.deepEqual(result.analysis.deploymentChecklist, ['配置 ERP 凭证']);
 });
 
-test('extracts JSON from a markdown fence', async () => {
-  let calls = 0;
-  const result = await analyzeSopWithEvolink(
-    { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
-    {
-      apiKey: 'test-provider-key',
-      fetch: async () => {
-        calls += 1;
-        return calls === 1
-          ? response(JSON.stringify(validSkeleton))
-          : response(`\`\`\`json\n${JSON.stringify(validAnalysis)}\n\`\`\``);
-      },
-    }
-  );
-  assert.equal(result.analysis.title, '测试');
+test('extracts JSON from fences and surrounding commentary', async () => {
+  const mock = provider({
+    skeleton: () =>
+      response(`主干如下：\n${JSON.stringify(validSkeleton)}\n请确认。`),
+    steps: () =>
+      response(`\`\`\`json\n${JSON.stringify(validDetails)}\n\`\`\``),
+  });
+  const result = await analyzeSopWithEvolink(input, {
+    apiKey: 'test-provider-key',
+    fetch: mock.fetch,
+  });
+  assert.equal(result.analysis.steps[0].ownerActorId, 'employee');
 });
 
-test('extracts JSON objects surrounded by model commentary', async () => {
-  let calls = 0;
-  const result = await analyzeSopWithEvolink(
-    { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
-    {
-      apiKey: 'test-provider-key',
-      fetch: async () => {
-        calls += 1;
-        return calls === 1
-          ? response(`主干如下：\n${JSON.stringify(validSkeleton)}\n请确认。`)
-          : response(
-              `完整结果如下：\n${JSON.stringify(validAnalysis)}\n完成。`
-            );
-      },
-    }
-  );
-  assert.equal(result.analysis.title, '测试');
+test('retries a truncated skeleton with a compact outline request', async () => {
+  let retryPrompt = '';
+  const mock = provider({
+    skeleton: (attempt) => {
+      if (attempt === 1)
+        return response('{"schemaVersion":"1.0","steps":[', 'length');
+      retryPrompt = mock.bodies.at(-1)!.body.messages.at(-1)!.content;
+      return response(JSON.stringify(validSkeleton));
+    },
+  });
+  const result = await analyzeSopWithEvolink(input, {
+    apiKey: 'test-provider-key',
+    fetch: mock.fetch,
+  });
+  assert.equal(mock.attempts.skeleton, 2);
+  assert.match(retryPrompt, /不超过 10 个/);
+  assert.match(retryPrompt, /finish_reason=length/);
+  assert.equal(result.analysis.title, '报销审批');
 });
 
-test('repairs invalid skeleton JSON once before requesting details', async () => {
-  let calls = 0;
-  let repairPrompt = '';
-  const result = await analyzeSopWithEvolink(
-    { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
-    {
-      apiKey: 'test-provider-key',
-      fetch: async (_url, init) => {
-        calls += 1;
-        if (calls === 2) {
-          const body = JSON.parse(String(init?.body));
-          repairPrompt = body.messages.at(-1)?.content || '';
-        }
-        if (calls === 1) return response('我需要更多信息才能输出。');
-        if (calls === 2) return response(JSON.stringify(validSkeleton));
-        return response(JSON.stringify(validAnalysis));
-      },
-    }
+test('retries a skeleton whose graph is invalid', async () => {
+  const broken = {
+    ...validSkeleton,
+    steps: [{ ...validSkeleton.steps[1], next: [] }, validSkeleton.steps[2]],
+  };
+  const mock = provider({
+    skeleton: (attempt) =>
+      response(JSON.stringify(attempt === 1 ? broken : validSkeleton)),
+  });
+  await analyzeSopWithEvolink(input, {
+    apiKey: 'test-provider-key',
+    fetch: mock.fetch,
+  });
+  assert.equal(mock.attempts.skeleton, 2);
+  assert.match(
+    mock.bodies[1].body.messages.at(-1)!.content,
+    /Skeleton graph is invalid/
   );
-  assert.equal(calls, 3);
-  assert.match(repairPrompt, /JSON|schemaVersion/);
-  assert.equal(result.analysis.title, '测试');
-  assert.equal(result.meta.usage.totalTokens, 600);
 });
 
-test('normalizes localized skeleton enums before detail generation', async () => {
-  const localizedSkeleton = {
+test('reports finish_reason when both skeleton attempts are unusable', async () => {
+  const mock = provider({
+    skeleton: () => response('{"schemaVersion":"1.0","steps":[', 'length'),
+  });
+  await assert.rejects(
+    analyzeSopWithEvolink(input, {
+      apiKey: 'test-provider-key',
+      fetch: mock.fetch,
+    }),
+    /finish_reason=length, completion_tokens=80/
+  );
+});
+
+test('normalizes localized skeleton enums and plain-name actors', async () => {
+  const localized = {
     ...validSkeleton,
     trigger: { type: '手动触发', description: '员工提交报销申请' },
-    actors: [{ id: 'employee', name: '员工' }],
+    actors: ['员工', '财务', null],
     steps: [
       {
         id: 'check',
@@ -235,12 +317,22 @@ test('normalizes localized skeleton enums before detail generation', async () =>
             branch: '是',
             condition: {
               leftValue: 'amount',
-              operator: '大于等于',
+              operator: 'gte',
               rightValue: 5000,
-              explanation: '金额达到财务总监审批门槛',
+              explanation: '金额达到门槛',
             },
           },
-          { targetStepId: 'done', label: '否则', branch: '否' },
+          {
+            targetStepId: 'done',
+            label: '否则',
+            branch: 'no',
+            condition: {
+              leftValue: 'amount',
+              operator: '小于',
+              rightValue: 5000,
+              explanation: '金额未达门槛',
+            },
+          },
         ],
       },
       {
@@ -252,305 +344,24 @@ test('normalizes localized skeleton enums before detail generation', async () =>
       },
     ],
   };
-  let calls = 0;
-  let detailSkeleton: SopSkeleton | undefined;
-  const result = await analyzeSopWithEvolink(
-    { sop: '检查金额。', locale: 'zh', triggerHint: 'auto' },
-    {
-      apiKey: 'test-provider-key',
-      fetch: async (_url, init) => {
-        calls += 1;
-        if (calls === 1) return response(JSON.stringify(localizedSkeleton));
-        const body = JSON.parse(String(init?.body));
-        detailSkeleton = JSON.parse(body.messages.at(-1).content).skeleton;
-        return response(JSON.stringify(validAnalysis));
-      },
-    }
-  );
-  assert.equal(calls, 2);
-  assert.equal(detailSkeleton?.trigger.type, 'manual');
-  assert.equal(detailSkeleton?.actors[0].responsibility, '员工');
-  assert.equal(detailSkeleton?.steps[0].operation, 'condition');
-  assert.equal(detailSkeleton?.steps[0].next[0].branch, 'true');
-  assert.equal(
-    detailSkeleton?.steps[0].next[0].condition?.operator,
-    'greaterThanOrEqual'
-  );
-  assert.equal(detailSkeleton?.steps[0].next[1].branch, 'false');
-  assert.equal(result.analysis.title, '测试');
-});
-
-test('performs at most one repair request after invalid model JSON', async () => {
-  let calls = 0;
-  let repairMessages: Array<{ role?: string; content?: string }> = [];
-  const result = await analyzeSopWithEvolink(
-    { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
-    {
-      apiKey: 'test-provider-key',
-      fetch: async (_url, init) => {
-        calls += 1;
-        if (calls === 3) {
-          const repairBody = JSON.parse(String(init?.body)) as {
-            messages?: Array<{ role?: string; content?: string }>;
-          };
-          repairMessages = repairBody.messages || [];
-        }
-        if (calls === 1) return response(JSON.stringify(validSkeleton));
-        return calls === 2
-          ? response('{"schemaVersion":"1.0"}')
-          : response(JSON.stringify(validAnalysis));
-      },
-    }
-  );
-  assert.equal(calls, 3);
-  assert.equal(result.analysis.title, '测试');
-  assert.match(
-    repairMessages.at(-1)?.content || '',
-    /title|summary|trigger|actors|steps/
-  );
-});
-
-test('aborts provider work after the configured timeout', async () => {
-  await assert.rejects(
-    analyzeSopWithEvolink(
-      { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
-      {
-        apiKey: 'test-provider-key',
-        timeoutMs: 5,
-        fetch: async (_url, init) =>
-          new Promise((_resolve, reject) => {
-            init?.signal?.addEventListener('abort', () => {
-              reject(new DOMException('aborted', 'AbortError'));
-            });
-          }),
-      }
-    ),
-    /timeout/i
-  );
-});
-
-const routableSkeleton = {
-  ...validSkeleton,
-  steps: [
-    {
-      id: 'submit',
-      title: '提交报销',
-      description: '提交金额与凭证',
-      source: 'source_text',
-      operation: 'write',
-      next: [{ targetStepId: 'done', label: '提交完成', branch: 'default' }],
-    },
-    {
-      id: 'done',
-      title: '完成',
-      description: '结束流程',
-      operation: 'end',
-      next: [],
-    },
-  ],
-};
-
-function truncated(content: string) {
-  return new Response(
-    JSON.stringify({
-      choices: [{ message: { content }, finish_reason: 'length' }],
-      usage: { prompt_tokens: 120, completion_tokens: 4000 },
-    }),
-    { status: 200, headers: { 'content-type': 'application/json' } }
-  );
-}
-
-test('retries a truncated skeleton with a compact outline request', async () => {
-  let calls = 0;
-  let retryPrompt = '';
-  const result = await analyzeSopWithEvolink(
-    { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
-    {
-      apiKey: 'test-provider-key',
-      fetch: async (_url, init) => {
-        calls += 1;
-        if (calls === 1) return truncated('{"schemaVersion":"1.0","steps":[');
-        if (calls === 2) {
-          retryPrompt = JSON.parse(String(init?.body)).messages.at(-1).content;
-          return response(JSON.stringify(validSkeleton));
-        }
-        return response(JSON.stringify(validAnalysis));
-      },
-    }
-  );
-  assert.equal(calls, 3);
-  assert.match(retryPrompt, /不超过 10 个/);
-  assert.equal(result.analysis.title, '测试');
-  assert.equal(result.meta.detailsIncomplete, undefined);
-});
-
-test('reports finish_reason when both skeleton attempts are unusable', async () => {
-  await assert.rejects(
-    analyzeSopWithEvolink(
-      { sop: '检查订单。', locale: 'zh', triggerHint: 'auto' },
-      {
-        apiKey: 'test-provider-key',
-        fetch: async () => truncated('{"schemaVersion":"1.0","steps":['),
-      }
-    ),
-    /finish_reason=length, completion_tokens=4000/
-  );
-});
-
-test('returns the validated skeleton when detail generation keeps failing', async () => {
-  let calls = 0;
-  const result = await analyzeSopWithEvolink(
-    { sop: '提交报销。', locale: 'zh', triggerHint: 'manual' },
-    {
-      apiKey: 'test-provider-key',
-      fetch: async () => {
-        calls += 1;
-        if (calls === 1) return response(JSON.stringify(routableSkeleton));
-        return truncated('{"schemaVersion":"1.0","title":');
-      },
-    }
-  );
-  assert.equal(calls, 3);
-  assert.equal(result.meta.detailsIncomplete, true);
-  assert.equal(result.meta.usage.totalTokens, 200 + 4120 * 2);
-  assert.deepEqual(
-    result.analysis.steps.map((step) => [step.id, step.source]),
-    [
-      ['submit', 'source_text'],
-      ['done', 'ai_inferred'],
-    ]
-  );
-  assert.equal(result.analysis.missingInformation.length, 1);
-});
-
-test('classifies model error handling before validation', async () => {
-  const modelOutput = {
-    ...validAnalysis,
-    steps: [
-      {
-        ...validAnalysis.steps[0],
-        id: 'check',
-        title: '信用校验',
-        operation: 'condition',
-        next: [
-          {
-            targetStepId: 'done',
-            label: '额度充足',
-            branch: 'true',
-            condition: {
-              leftValue: '{{$json.credit}}',
-              operator: 'greaterThan',
-              rightValue: 0,
-              explanation: '额度充足',
-            },
-          },
-          {
-            targetStepId: 'done',
-            label: '驳回',
-            branch: '驳回',
-            condition: {
-              leftValue: '{{$json.credit}}',
-              operator: 'lessThanOrEqual',
-              rightValue: 0,
-              explanation: '额度不足',
-            },
-          },
-        ],
-        errorHandling: [
-          {
-            scenario: '信用接口查询超时',
-            action: '告警',
-            targetStepId: 'done',
-          },
-          { scenario: '审批超时', action: '催办上级', targetStepId: 'done' },
-        ],
-      },
-      validAnalysis.steps[0],
-    ],
-  };
-  let calls = 0;
-  const result = await analyzeSopWithEvolink(
-    { sop: '校验信用。', locale: 'zh', triggerHint: 'auto' },
-    {
-      apiKey: 'test-provider-key',
-      fetch: async () => {
-        calls += 1;
-        return response(
-          JSON.stringify(calls === 1 ? validSkeleton : modelOutput)
-        );
-      },
-    }
-  );
-  const [check] = result.analysis.steps;
-  assert.equal(check.next[1].branch, 'error');
-  assert.deepEqual(check.errorHandling, [
-    { scenario: '信用接口查询超时', action: '告警', kind: 'system' },
-    {
-      scenario: '审批超时',
-      action: '催办上级',
-      targetStepId: 'done',
-      kind: 'business',
-    },
+  const mock = provider({
+    skeleton: () => response(JSON.stringify(localized)),
+    steps: () => response(JSON.stringify({ steps: [] })),
+  });
+  const result = await analyzeSopWithEvolink(input, {
+    apiKey: 'test-provider-key',
+    fetch: mock.fetch,
+  });
+  const skeleton: SopSkeleton = JSON.parse(
+    mock.bodies[1].body.messages[1].content
+  ).skeleton;
+  assert.equal(skeleton.trigger.type, 'manual');
+  assert.deepEqual(skeleton.actors, [
+    { name: '员工', id: 'actor_1', responsibility: '员工' },
+    { name: '财务', id: 'actor_2', responsibility: '财务' },
   ]);
-});
-
-test('maps n8n operator names and keeps null entries on the repair path', async () => {
-  const withAlias = {
-    ...validAnalysis,
-    steps: [
-      {
-        ...validAnalysis.steps[0],
-        id: 'check',
-        operation: 'condition',
-        next: [
-          {
-            targetStepId: 'done',
-            label: '大额',
-            branch: 'yes',
-            condition: {
-              leftValue: '{{$json.amount}}',
-              operator: 'gte',
-              rightValue: 50000,
-              explanation: '金额大于等于 5 万',
-            },
-          },
-          {
-            targetStepId: 'done',
-            label: '小额',
-            branch: 'no',
-            condition: {
-              leftValue: '{{$json.amount}}',
-              operator: 'lt',
-              rightValue: 50000,
-              explanation: '金额小于 5 万',
-            },
-          },
-        ],
-      },
-      validAnalysis.steps[0],
-    ],
-  };
-  let calls = 0;
-  const result = await analyzeSopWithEvolink(
-    { sop: '按金额分支。', locale: 'zh', triggerHint: 'auto' },
-    {
-      apiKey: 'test-provider-key',
-      fetch: async () => {
-        calls += 1;
-        if (calls === 1) return response(JSON.stringify(validSkeleton));
-        if (calls === 2)
-          return response(
-            JSON.stringify({
-              ...validAnalysis,
-              steps: [{ ...validAnalysis.steps[0], errorHandling: [null] }],
-            })
-          );
-        return response(JSON.stringify(withAlias));
-      },
-    }
-  );
-  assert.equal(calls, 3);
   const [check] = result.analysis.steps;
+  assert.equal(check.operation, 'condition');
   assert.deepEqual(
     check.next.map((edge) => [edge.branch, edge.condition?.operator]),
     [
@@ -560,32 +371,158 @@ test('maps n8n operator names and keeps null entries on the repair path', async 
   );
 });
 
-test('accepts skeleton actors returned as plain names', async () => {
-  let calls = 0;
-  let detailSkeleton: SopSkeleton | undefined;
-  await analyzeSopWithEvolink(
-    { sop: '客户提交退货。', locale: 'zh', triggerHint: 'auto' },
+test('classifies step error handling and drops system targets', async () => {
+  const mock = provider({
+    steps: () =>
+      response(
+        JSON.stringify({
+          steps: [
+            {
+              id: 'submit',
+              errorHandling: [
+                {
+                  scenario: '信用接口查询超时',
+                  action: '告警',
+                  targetStepId: 'done',
+                },
+                {
+                  scenario: '审批超时',
+                  action: '催办上级',
+                  targetStepId: 'review',
+                },
+                null,
+              ],
+            },
+            { id: 'review', source: 'not-a-source' },
+            'garbage',
+          ],
+        })
+      ),
+  });
+  const result = await analyzeSopWithEvolink(input, {
+    apiKey: 'test-provider-key',
+    fetch: mock.fetch,
+  });
+  const [submit, review] = result.analysis.steps;
+  assert.deepEqual(submit.errorHandling, [
+    { scenario: '信用接口查询超时', action: '告警', kind: 'system' },
     {
-      apiKey: 'test-provider-key',
-      fetch: async (_url, init) => {
-        calls += 1;
-        if (calls === 1)
-          return response(
-            JSON.stringify({
-              ...validSkeleton,
-              actors: ['客户', '售后专员', null],
-            })
-          );
-        detailSkeleton = JSON.parse(
-          JSON.parse(String(init?.body)).messages.at(-1).content
-        ).skeleton;
-        return response(JSON.stringify(validAnalysis));
-      },
-    }
-  );
-  assert.equal(calls, 2);
-  assert.deepEqual(detailSkeleton?.actors, [
-    { name: '客户', id: 'actor_1', responsibility: '客户' },
-    { name: '售后专员', id: 'actor_2', responsibility: '售后专员' },
+      scenario: '审批超时',
+      action: '催办上级',
+      kind: 'business',
+      targetStepId: 'review',
+    },
   ]);
+  assert.equal(review.source, 'ai_inferred');
+});
+
+test('keeps valid plan items and repairs question options', async () => {
+  const mock = provider({
+    plan: () =>
+      response(
+        JSON.stringify({
+          missingInformation: ['通知渠道', ''],
+          confirmationQuestions: [
+            {
+              id: 'channel',
+              question: '通知渠道？',
+              options: ['邮件', '企业微信', '短信', '电话'],
+              allowCustom: false,
+            },
+            { id: 'bad', question: '只有一个选项', options: ['是'] },
+          ],
+          risks: [
+            {
+              level: 'HIGH',
+              title: '重复',
+              description: '重复付款',
+              mitigation: '幂等',
+            },
+            { level: 'urgent', title: 'x' },
+          ],
+        })
+      ),
+  });
+  const result = await analyzeSopWithEvolink(input, {
+    apiKey: 'test-provider-key',
+    fetch: mock.fetch,
+  });
+  const { confirmationQuestions, missingInformation, risks } = result.analysis;
+  assert.deepEqual(missingInformation, ['通知渠道']);
+  assert.equal(confirmationQuestions.length, 1);
+  assert.equal(confirmationQuestions[0].options.length, 3);
+  assert.equal(confirmationQuestions[0].allowCustom, true);
+  assert.deepEqual(
+    risks.map((risk) => risk.level),
+    ['high']
+  );
+  assert.equal(result.meta.detailsIncomplete, undefined);
+});
+
+test('repairs an unparsable part once', async () => {
+  const mock = provider({
+    plan: (attempt) =>
+      attempt === 1
+        ? response('计划如下：无')
+        : response(JSON.stringify(validPlan)),
+  });
+  const result = await analyzeSopWithEvolink(input, {
+    apiKey: 'test-provider-key',
+    fetch: mock.fetch,
+  });
+  assert.equal(mock.attempts.plan, 2);
+  assert.match(mock.bodies.at(-1)!.body.messages.at(-1)!.content, /无法解析/);
+  assert.equal(result.analysis.confirmationQuestions.length, 1);
+});
+
+test('still returns questions when only step details fail', async () => {
+  const mock = provider({
+    steps: () => response('{"steps":[', 'length'),
+  });
+  const result = await analyzeSopWithEvolink(input, {
+    apiKey: 'test-provider-key',
+    fetch: mock.fetch,
+  });
+  assert.equal(mock.attempts.steps, 2);
+  assert.equal(result.meta.detailsIncomplete, true);
+  assert.equal(result.analysis.confirmationQuestions[0].id, 'threshold');
+  assert.deepEqual(result.analysis.steps[0].inputs, []);
+  assert.equal(result.analysis.missingInformation.length, 2);
+});
+
+test('returns the validated outline when both parts fail', async () => {
+  const mock = provider({
+    steps: () => new Response('busy', { status: 503 }),
+    plan: () => new Response('busy', { status: 503 }),
+  });
+  const result = await analyzeSopWithEvolink(input, {
+    apiKey: 'test-provider-key',
+    fetch: mock.fetch,
+  });
+  assert.equal(result.meta.detailsIncomplete, true);
+  assert.deepEqual(
+    result.analysis.steps.map((step) => [step.id, step.source]),
+    [
+      ['submit', 'source_text'],
+      ['review', 'ai_inferred'],
+      ['done', 'ai_inferred'],
+    ]
+  );
+  assert.equal(result.analysis.confirmationQuestions.length, 0);
+});
+
+test('aborts provider work after the configured timeout', async () => {
+  await assert.rejects(
+    analyzeSopWithEvolink(input, {
+      apiKey: 'test-provider-key',
+      timeoutMs: 5,
+      fetch: async (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('aborted', 'AbortError'));
+          });
+        }),
+    }),
+    /timeout/i
+  );
 });
