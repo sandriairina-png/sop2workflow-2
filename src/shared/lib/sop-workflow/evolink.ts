@@ -24,7 +24,7 @@ export const EVOLINK_SKELETON_MAX_TOKENS = 4000;
 export const EVOLINK_DETAIL_MAX_TOKENS = 6000;
 export const EVOLINK_DEFAULT_TIMEOUT_MS = 65_000;
 const SKELETON_TIMEOUT_MS = 23_000;
-const DETAIL_TIMEOUT_MS = 40_000;
+const DETAIL_TIMEOUT_MS = 50_000;
 
 export class EvolinkError extends Error {
   constructor(
@@ -259,6 +259,10 @@ function normalizedOperator(value: unknown) {
   return 'equals';
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 function normalizeSkeleton(raw: unknown) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
   const skeleton = raw as Record<string, unknown>;
@@ -266,13 +270,27 @@ function normalizeSkeleton(raw: unknown) {
     skeleton.trigger && typeof skeleton.trigger === 'object'
       ? (skeleton.trigger as Record<string, unknown>)
       : {};
+  // Models sometimes return actors as plain names (["客户", "财务"]).
   const actors = Array.isArray(skeleton.actors)
-    ? skeleton.actors.map((actor) => {
-        const record = actor as Record<string, unknown>;
-        return {
-          ...record,
-          responsibility: record.responsibility || record.name || '参与流程',
-        };
+    ? skeleton.actors.flatMap((actor, index) => {
+        const record: Record<string, unknown> =
+          typeof actor === 'string'
+            ? { name: actor }
+            : isRecord(actor)
+              ? actor
+              : {};
+        const name = String(
+          record.name || record.role || record.title || record.id || ''
+        ).trim();
+        if (!name) return [];
+        return [
+          {
+            ...record,
+            id: String(record.id || `actor_${index + 1}`),
+            name,
+            responsibility: record.responsibility || name || '参与流程',
+          },
+        ];
       })
     : [];
   const steps = Array.isArray(skeleton.steps)
@@ -330,10 +348,6 @@ function normalizedErrorKind(value: unknown) {
   if (text === 'system' || /系统|技术/.test(text)) return 'system' as const;
   if (text === 'business' || /业务/.test(text)) return 'business' as const;
   return undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 // The detail stage gets strict normalization: only unambiguous aliases are

@@ -559,3 +559,33 @@ test('maps n8n operator names and keeps null entries on the repair path', async 
     ]
   );
 });
+
+test('accepts skeleton actors returned as plain names', async () => {
+  let calls = 0;
+  let detailSkeleton: SopSkeleton | undefined;
+  await analyzeSopWithEvolink(
+    { sop: '客户提交退货。', locale: 'zh', triggerHint: 'auto' },
+    {
+      apiKey: 'test-provider-key',
+      fetch: async (_url, init) => {
+        calls += 1;
+        if (calls === 1)
+          return response(
+            JSON.stringify({
+              ...validSkeleton,
+              actors: ['客户', '售后专员', null],
+            })
+          );
+        detailSkeleton = JSON.parse(
+          JSON.parse(String(init?.body)).messages.at(-1).content
+        ).skeleton;
+        return response(JSON.stringify(validAnalysis));
+      },
+    }
+  );
+  assert.equal(calls, 2);
+  assert.deepEqual(detailSkeleton?.actors, [
+    { name: '客户', id: 'actor_1', responsibility: '客户' },
+    { name: '售后专员', id: 'actor_2', responsibility: '售后专员' },
+  ]);
+});

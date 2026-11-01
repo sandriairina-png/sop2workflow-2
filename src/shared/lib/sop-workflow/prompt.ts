@@ -12,7 +12,7 @@ source：原文明确写出的动作为 source_text；为让流程闭环而补�
 连接字段为 targetStepId、label、branch，判断路径应包含 condition（leftValue、operator、rightValue、explanation）。
 允许值与完整分析相同；节点 ID 必须唯一，所有 targetStepId 必须指向主干中的节点。
 输出必须是一个以 { 开始、以 } 结束的 JSON 对象。最小结构示例：
-{"schemaVersion":"1.0","title":"流程标题","summary":"流程摘要","trigger":{"type":"manual","description":"触发说明"},"actors":[],"steps":[{"id":"done","title":"完成","description":"流程结束","source":"ai_inferred","operation":"end","next":[]}]}。`;
+{"schemaVersion":"1.0","title":"流程标题","summary":"流程摘要","trigger":{"type":"manual","description":"触发说明"},"actors":[{"id":"actor_1","name":"负责人或系统","responsibility":"职责"}],"steps":[{"id":"done","title":"完成","description":"流程结束","source":"ai_inferred","operation":"end","next":[]}]}。`;
 
 export const SOP_SKELETON_COMPACT_RETRY_PROMPT =
   '上一个主干结果无法使用（可能因输出过长被截断）。请用更精简的方式重新输出：节点总数不超过 10 个，合并次要动作，description 不超过 12 个字；只返回完整 JSON 对象，必须包含 schemaVersion、title、summary、trigger、actors、steps；不要解释、不要 Markdown、不要代码围栏。';
