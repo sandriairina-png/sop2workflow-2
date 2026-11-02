@@ -33,6 +33,101 @@ export function validateAnalysisDraft(draft: string) {
   return validateSopAnalysisGraph(SopAnalysisSchema.parse(JSON.parse(draft)));
 }
 
+type DraftErrorCopy = {
+  syntax: string;
+  schema: string;
+  duplicate: string;
+  unknownActor: string;
+  tooFewBranches: string;
+  unknownTarget: string;
+  unlabelled: string;
+  missingCondition: string;
+  unknownErrorTarget: string;
+  unreachable: string;
+  noEnd: string;
+  secret: string;
+  generic: string;
+};
+
+// Turns validation failures from the advanced editor into business language.
+// Templates use {step}, {branch} and {steps}; step ids become step titles.
+export function describeDraftError(
+  error: unknown,
+  draft: string,
+  copy: DraftErrorCopy
+) {
+  if (error instanceof SyntaxError) return copy.syntax;
+  const message = error instanceof Error ? error.message : '';
+  if (error && typeof error === 'object' && 'issues' in error) {
+    return copy.schema;
+  }
+  let titles = new Map<string, string>();
+  try {
+    const parsed = JSON.parse(draft) as {
+      steps?: Array<{ id?: string; title?: string }>;
+    };
+    titles = new Map(
+      (parsed.steps || []).map((step) => [
+        String(step.id),
+        step.title || String(step.id),
+      ])
+    );
+  } catch {
+    // The message is still translated without titles.
+  }
+  const title = (id: string) => `「${titles.get(id) || id}」`;
+  const fill = (template: string, values: Record<string, string>) =>
+    template.replace(/\{(\w+)\}/g, (_, key) => values[key] ?? '');
+  const rules: Array<[RegExp, (match: RegExpMatchArray) => string]> = [
+    [
+      /^Duplicate step id: (.+)$/,
+      (m) => fill(copy.duplicate, { step: title(m[1]) }),
+    ],
+    [
+      /^Step (\S+) references unknown actor/,
+      (m) => fill(copy.unknownActor, { step: title(m[1]) }),
+    ],
+    [
+      /^Condition (\S+) must have at least two branches/,
+      (m) => fill(copy.tooFewBranches, { step: title(m[1]) }),
+    ],
+    [
+      /^Step (\S+) error path references unknown step/,
+      (m) => fill(copy.unknownErrorTarget, { step: title(m[1]) }),
+    ],
+    [
+      /^Step (\S+) references unknown step/,
+      (m) => fill(copy.unknownTarget, { step: title(m[1]) }),
+    ],
+    [
+      /^Step (\S+) contains an unlabelled connection/,
+      (m) => fill(copy.unlabelled, { step: title(m[1]) }),
+    ],
+    [
+      /^Condition (\S+) branch (.+) requires operands/,
+      (m) =>
+        fill(copy.missingCondition, {
+          step: title(m[1]),
+          branch: `「${m[2]}」`,
+        }),
+    ],
+    [
+      /unreachable through next: ([^.]+)\./,
+      (m) =>
+        fill(copy.unreachable, {
+          steps: m[1].split(', ').map(title).join('、'),
+        }),
+    ],
+    [/reachable terminal path/, () => copy.noEnd],
+    [/secret-like value/, () => copy.secret],
+  ];
+  for (const [pattern, render] of rules) {
+    const match = message.match(pattern);
+    if (match) return render(match);
+  }
+  return copy.generic;
+}
+
 export function resolveWorkflowError(
   code: string,
   copy: {

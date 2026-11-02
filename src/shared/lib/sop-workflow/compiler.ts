@@ -96,12 +96,28 @@ function conditionGroup(connection: SopConnection, index: number) {
   };
 }
 
-function makeTrigger(analysis: SopAnalysis): N8nNode {
+// Node names and setup requirements are read by business users in n8n, so
+// they follow the SOP's language instead of exposing internal step ids.
+function isChinese(analysis: SopAnalysis) {
+  return [analysis.title, ...analysis.steps.map((step) => step.title)].some(
+    (text) => /[一-鿿]/.test(text)
+  );
+}
+
+type Say = (zh: string, en: string) => string;
+
+function quoted(labels: string[], zh: boolean) {
+  return labels
+    .map((label) => (zh ? `“${label}”` : `"${label}"`))
+    .join(zh ? '、' : ', ');
+}
+
+function makeTrigger(analysis: SopAnalysis, say: Say): N8nNode {
   if (analysis.trigger.type === 'schedule') {
     const schedule = analysis.trigger.schedule || { hour: 9, minute: 0 };
     return {
       id: 'trigger',
-      name: 'Schedule Trigger',
+      name: say('定时触发', 'Schedule Trigger'),
       type: 'n8n-nodes-base.scheduleTrigger',
       typeVersion: 1.2,
       position: [120, 320],
@@ -122,7 +138,7 @@ function makeTrigger(analysis: SopAnalysis): N8nNode {
   if (analysis.trigger.type === 'webhook') {
     return {
       id: 'trigger',
-      name: 'Webhook Trigger',
+      name: say('Webhook 触发', 'Webhook Trigger'),
       type: 'n8n-nodes-base.webhook',
       typeVersion: 2,
       position: [120, 320],
@@ -137,7 +153,7 @@ function makeTrigger(analysis: SopAnalysis): N8nNode {
   }
   return {
     id: 'trigger',
-    name: 'Manual Trigger',
+    name: say('手动触发', 'Manual Trigger'),
     type: 'n8n-nodes-base.manualTrigger',
     typeVersion: 1,
     position: [120, 320],
@@ -148,11 +164,13 @@ function makeTrigger(analysis: SopAnalysis): N8nNode {
 function nodeForStep(
   step: SopStep,
   index: number,
-  requirements: string[]
+  name: string,
+  requirements: string[],
+  say: Say
 ): N8nNode {
   const base = {
     id: step.id,
-    name: step.id,
+    name,
     position: [420 + index * 280, 320] as [number, number],
   };
 
@@ -189,7 +207,10 @@ function nodeForStep(
       Boolean(step.integration?.credentialRequired);
     if (needsConfig) {
       requirements.push(
-        `${step.title}: configure ${step.integration?.system || 'system'} endpoint and credentials.`
+        say(
+          `${step.title}：配置${step.integration?.system || '业务系统'}的接口地址和登录凭证。`,
+          `${step.title}: configure ${step.integration?.system || 'system'} endpoint and credentials.`
+        )
       );
     }
     return {
@@ -209,7 +230,10 @@ function nodeForStep(
   if (step.operation === 'notify') {
     if (/email|邮件|邮箱/i.test(step.integration?.system || '')) {
       requirements.push(
-        `${step.title}: configure email credentials and recipient.`
+        say(
+          `${step.title}：配置发件邮箱账号和收件人。`,
+          `${step.title}: configure email credentials and recipient.`
+        )
       );
       return {
         ...base,
@@ -227,7 +251,10 @@ function nodeForStep(
       };
     }
     requirements.push(
-      `${step.title}: choose and configure a notification channel.`
+      say(
+        `${step.title}：选择并配置通知渠道，例如邮件、企业微信或短信。`,
+        `${step.title}: choose and configure a notification channel.`
+      )
     );
     return {
       ...base,
@@ -267,7 +294,10 @@ function nodeForStep(
 
   if (step.operation === 'approve') {
     requirements.push(
-      `${step.title}: configure the approval channel and assignee.`
+      say(
+        `${step.title}：配置审批方式和审批人。`,
+        `${step.title}: configure the approval channel and assignee.`
+      )
     );
   }
   return {
@@ -329,24 +359,34 @@ function routedEdges(step: SopStep) {
     .map(({ edge }) => edge);
 }
 
+function decisionRequirement(step: SopStep, labels: string[], zh: boolean) {
+  return zh
+    ? `${step.title}：在这一步的结果里写明处理结论（n8n 字段名 decision），取值为${quoted(labels, true)}之一，流程会据此只走对应的分支。`
+    : `${step.title}: set {{$json.decision}} to one of ${quoted(labels, false)} so the workflow takes a single branch.`;
+}
+
 function routerNode(
   step: SopStep,
+  id: string,
   name: string,
   position: [number, number],
-  requirements: string[]
+  requirements: string[],
+  zh: boolean
 ): N8nNode {
   const branches = routedEdges(step);
   const hasFallback = step.next.some((edge) => edge.branch === 'default');
   const decisionBranches = branches.filter((edge) => !edge.condition);
   if (decisionBranches.length) {
     requirements.push(
-      `${step.title}: set {{$json.decision}} to one of ${decisionBranches
-        .map((edge) => `"${edge.label}"`)
-        .join(', ')} so the router picks a single branch.`
+      decisionRequirement(
+        step,
+        decisionBranches.map((edge) => edge.label),
+        zh
+      )
     );
   }
   return {
-    id: name,
+    id,
     name,
     type: 'n8n-nodes-base.switch',
     typeVersion: 3.2,
@@ -381,14 +421,14 @@ function uniqueName(base: string, taken: Set<string>) {
 }
 
 function systemErrorHandlerNode(
-  analysis: SopAnalysis,
   position: [number, number],
-  taken: Set<string>
+  takenIds: Set<string>,
+  taken: Set<string>,
+  say: Say
 ): N8nNode {
-  const zh = /[一-鿿]/.test(analysis.title);
   return {
-    id: uniqueName(SYSTEM_ERROR_HANDLER_ID, taken),
-    name: uniqueName(zh ? '系统异常处理' : 'System Error Handler', taken),
+    id: uniqueName(SYSTEM_ERROR_HANDLER_ID, takenIds),
+    name: uniqueName(say('系统异常处理', 'System Error Handler'), taken),
     type: 'n8n-nodes-base.noOp',
     typeVersion: 1,
     position,
@@ -398,15 +438,25 @@ function systemErrorHandlerNode(
 
 export function compileN8nWorkflow(input: SopAnalysis): N8nWorkflow {
   const analysis = validateSopAnalysisGraph(input);
+  const zh = isChinese(analysis);
+  const say: Say = (zhText, enText) => (zh ? zhText : enText);
   const requirements: string[] = [];
-  const trigger = makeTrigger(analysis);
-  const stepNodes = analysis.steps.map((step, index) =>
-    nodeForStep(step, index, requirements)
-  );
-  const taken = new Set([
-    trigger.name,
-    ...stepNodes.flatMap((node) => [node.id, node.name]),
+  const trigger = makeTrigger(analysis, say);
+  // n8n requires unique node ids and unique node names (separately).
+  const takenIds = new Set([
+    trigger.id,
+    ...analysis.steps.map((step) => step.id),
   ]);
+  const taken = new Set([trigger.name]);
+  const stepNodes = analysis.steps.map((step, index) =>
+    nodeForStep(
+      step,
+      index,
+      uniqueName(step.title.trim() || step.id, taken),
+      requirements,
+      say
+    )
+  );
   const routers = new Map<string, N8nNode>();
   analysis.steps.forEach((step, index) => {
     if (!needsRouter(step)) return;
@@ -415,9 +465,17 @@ export function compileN8nWorkflow(input: SopAnalysis): N8nWorkflow {
       step.id,
       routerNode(
         step,
-        uniqueName(`${step.id}_route`, taken),
+        uniqueName(`${step.id}_route`, takenIds),
+        uniqueName(
+          say(
+            `${stepNodes[index].name} · 分支路由`,
+            `${stepNodes[index].name} · Router`
+          ),
+          taken
+        ),
         [x + 140, 500],
-        requirements
+        requirements,
+        zh
       )
     );
   });
@@ -443,34 +501,40 @@ export function compileN8nWorkflow(input: SopAnalysis): N8nWorkflow {
     );
     if (decisions.length) {
       requirements.push(
-        `${step.title}: set {{$json.decision}} to one of ${decisions
-          .map((edge) => `"${edge.label}"`)
-          .join(', ')} so the condition picks a branch.`
+        decisionRequirement(
+          step,
+          decisions.map((edge) => edge.label),
+          zh
+        )
       );
     }
     const business = step.errorHandling.filter(
       (item) => classifyErrorHandling(item) === 'business'
     );
     if (business.length) {
+      const scenarios = business.map((item) => item.scenario);
       requirements.push(
-        `${step.title}: business exception ${business
-          .map((item) => `"${item.scenario}"`)
-          .join(
-            ', '
-          )} is not a workflow branch yet; add it to the SOP so it is routed explicitly.`
+        say(
+          `${step.title}：业务异常${quoted(scenarios, true)}还没有对应的流程分支，建议在 SOP 中写明处理方式后重新生成。`,
+          `${step.title}: business exception ${quoted(scenarios, false)} is not a workflow branch yet; add it to the SOP so it is routed explicitly.`
+        )
       );
     }
   }
   const handler = handlesSystemErrors.some(Boolean)
     ? systemErrorHandlerNode(
-        analysis,
         [420 + Math.max(stepNodes.length - 1, 0) * 140, 680],
-        taken
+        takenIds,
+        taken,
+        say
       )
     : undefined;
   if (handler) {
     requirements.push(
-      `${handler.name}: send system errors (API failures, timeouts) to an alert channel such as email or IM.`
+      say(
+        `${handler.name}：为接口失败、超时等系统异常配置告警渠道，例如邮件或企业微信。`,
+        `${handler.name}: send system errors (API failures, timeouts) to an alert channel such as email or IM.`
+      )
     );
   }
 

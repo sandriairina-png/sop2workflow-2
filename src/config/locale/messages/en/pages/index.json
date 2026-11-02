@@ -97,6 +97,47 @@
           "error_daily_limit": "Today's generation limit has been reached. It resets tomorrow.",
           "details_incomplete": "The main workflow is ready. Node details (owners, inputs/outputs, error handling) were not completed this time.",
           "complete_details": "Complete details",
+          "operation_labels": {
+            "read": "Read",
+            "transform": "Process",
+            "write": "Write",
+            "approve": "Approval",
+            "notify": "Notify",
+            "wait": "Wait",
+            "condition": "Decision",
+            "merge": "Merge",
+            "end": "End"
+          },
+          "branch_labels": {
+            "default": "Next",
+            "true": "Yes",
+            "false": "No",
+            "case": "Branch",
+            "error": "Exception"
+          },
+          "risk_levels": {
+            "low": "Low risk",
+            "medium": "Medium risk",
+            "high": "High risk"
+          },
+          "owner": "Owner",
+          "step_label": "Step",
+          "unknown_step": "Missing step",
+          "draft_errors": {
+            "syntax": "The content is not well formed. Check for missing commas, quotes or brackets, then validate again.",
+            "schema": "Some required details are missing or invalid. Compare with the previous version and validate again.",
+            "duplicate": "Two steps use the same number {step}. Give them different numbers.",
+            "unknown_actor": "The owner of step {step} is not in the role list.",
+            "too_few_branches": "Decision step {step} needs at least two branches.",
+            "unknown_target": "Step {step} points to a next step that does not exist.",
+            "unlabelled": "Step {step} has a connection without a description.",
+            "missing_condition": "Branch {branch} of decision step {step} has no condition.",
+            "unknown_error_target": "The exception handling of step {step} points to a step that does not exist.",
+            "unreachable": "These steps cannot be reached from the start: {steps}. Connect them to the workflow.",
+            "no_end": "The workflow needs at least one end step.",
+            "secret": "The content seems to include a key or password. Remove it and validate again.",
+            "generic": "The edited workflow did not pass validation. Check it and try again."
+          },
           "condition_pending": "(applies after regenerating)",
           "confirmed_conditions": "Confirmed conditions",
           "remove_condition": "Remove",

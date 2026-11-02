@@ -423,10 +423,10 @@ test('routes approval outcomes through a Switch so only one branch runs', () => 
       step({ id: 'notify-reject', operation: 'end' }),
     ])
   );
-  const approval = (result.connections['manager-approval'] as any).main;
+  const approval = (result.connections['经理审批'] as any).main;
   assert.deepEqual(
     approval.map((targets: any[]) => targets.map((link) => link.node)),
-    [['manager-approval_route']]
+    [['经理审批 · 分支路由']]
   );
   const router = result.nodes.find(
     (node) => node.id === 'manager-approval_route'
@@ -464,7 +464,7 @@ test('checks rejection before amount rules that cover every amount', () => {
       step({ id: 'reject', operation: 'end' }),
     ])
   );
-  const routed = (result.connections.fm_route as any).main;
+  const routed = (result.connections['fm · 分支路由'] as any).main;
   assert.deepEqual(
     routed.map((targets: any[]) => targets.map((link) => link.node)),
     [['reject'], ['cfo'], ['pay']]
@@ -490,13 +490,13 @@ test('sends a default success edge to the router fallback, not straight on', () 
     (result.connections.approve as any).main.map((targets: any[]) =>
       targets.map((link) => link.node)
     ),
-    [['approve_route']]
+    [['approve · 分支路由']]
   );
   const router = result.nodes.find((node) => node.id === 'approve_route')!;
   assert.deepEqual(router.parameters.options, { fallbackOutput: 'extra' });
   assert.deepEqual(
-    (result.connections.approve_route as any).main.map((targets: any[]) =>
-      targets.map((link) => link.node)
+    (result.connections['approve · 分支路由'] as any).main.map(
+      (targets: any[]) => targets.map((link) => link.node)
     ),
     [['reject'], ['pay']]
   );
@@ -572,9 +572,10 @@ test('keeps generated router and handler names unique', () => {
   const ids = result.nodes.map((node) => node.id);
   assert.equal(new Set(names).size, names.length);
   assert.equal(new Set(ids).size, ids.length);
-  assert.ok(names.includes('a_route_2'));
+  assert.ok(ids.includes('a_route_2'));
+  assert.ok(ids.includes('system_error_handler_2'));
   assert.deepEqual(
-    (result.connections.a_route_2 as any).main.map((targets: any[]) =>
+    (result.connections['a · 分支路由'] as any).main.map((targets: any[]) =>
       targets.map((link) => link.node)
     ),
     [['system_error_handler'], ['a_route']]
@@ -601,4 +602,47 @@ test('keeps parallel default edges on the main output', () => {
     ['create-order', 'lock-stock']
   );
   assert.ok(!result.nodes.some((node) => node.id === 'approved_route'));
+});
+
+test('names nodes and setup steps in the SOP language', () => {
+  const result = compileN8nWorkflow(
+    analysis([
+      step({
+        id: 'step_query_stock',
+        title: '查询库存',
+        operation: 'read',
+        next: [
+          {
+            targetStepId: 'step_approve',
+            label: '查询完成',
+            branch: 'default',
+          },
+        ],
+      }),
+      step({
+        id: 'step_approve',
+        title: '经理审批',
+        operation: 'approve',
+        next: [
+          { targetStepId: 'step_done', label: '通过', branch: 'true' },
+          { targetStepId: 'step_done', label: '驳回', branch: 'error' },
+        ],
+      }),
+      step({ id: 'step_done', title: '流程结束', operation: 'end' }),
+    ])
+  );
+  const names = result.nodes.map((node) => node.name);
+  assert.deepEqual(names, [
+    '定时触发',
+    '查询库存',
+    '经理审批',
+    '流程结束',
+    '经理审批 · 分支路由',
+    '系统异常处理',
+  ]);
+  assert.ok(!JSON.stringify(result.connections).includes('step_'));
+  for (const item of result.configurationRequirements) {
+    assert.match(item, /[一-鿿]/);
+    assert.doesNotMatch(item, /configure|set \{\{|step_/);
+  }
 });

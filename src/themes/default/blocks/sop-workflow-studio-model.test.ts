@@ -6,6 +6,7 @@ import { SopAnalysis } from '@/shared/lib/sop-workflow';
 import {
   buildClarificationAnswers,
   buildWorkflowGraphRows,
+  describeDraftError,
   getStepSourceBadge,
   mergeClarifications,
   resolveConfirmationQuestions,
@@ -299,5 +300,66 @@ test('does not build cards from the outline fallback notice', () => {
       { includeMissingInformation: false }
     ),
     []
+  );
+});
+
+test('explains editor validation failures in business language', () => {
+  const copy = {
+    syntax: '格式有误',
+    schema: '内容缺失',
+    duplicate: '编号重复{step}',
+    unknownActor: '负责人不存在{step}',
+    tooFewBranches: '{step}至少两个分支',
+    unknownTarget: '{step}下一步不存在',
+    unlabelled: '{step}缺少说明',
+    missingCondition: '{step}的{branch}缺少条件',
+    unknownErrorTarget: '{step}异常目标不存在',
+    unreachable: '走不到：{steps}',
+    noEnd: '缺少结束',
+    secret: '含密钥',
+    generic: '未通过校验',
+  };
+  const draft = JSON.stringify({
+    steps: [
+      { id: 'step_check', title: '库存判断' },
+      { id: 'step_notify', title: '通知采购' },
+    ],
+  });
+  let syntax: unknown;
+  try {
+    JSON.parse('{');
+  } catch (error) {
+    syntax = error;
+  }
+  assert.equal(describeDraftError(syntax, '{', copy), '格式有误');
+  assert.equal(
+    describeDraftError(
+      new Error('Condition step_check must have at least two branches.'),
+      draft,
+      copy
+    ),
+    '「库存判断」至少两个分支'
+  );
+  assert.equal(
+    describeDraftError(
+      new Error('Condition step_check branch 库存不足 requires operands.'),
+      draft,
+      copy
+    ),
+    '「库存判断」的「库存不足」缺少条件'
+  );
+  assert.equal(
+    describeDraftError(
+      new Error(
+        'Analysis contains steps unreachable through next: step_check, step_notify. Model business exceptions as next branches.'
+      ),
+      draft,
+      copy
+    ),
+    '走不到：「库存判断」、「通知采购」'
+  );
+  assert.equal(
+    describeDraftError(new Error('boom'), draft, copy),
+    '未通过校验'
   );
 });

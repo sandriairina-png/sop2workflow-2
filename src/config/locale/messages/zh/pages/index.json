@@ -93,6 +93,47 @@
           "error_daily_limit": "今天的生成次数已用完，明天会自动恢复。",
           "details_incomplete": "主流程已生成，节点细节（负责人、输入输出、异常处理）这次没补全。",
           "complete_details": "补全细节",
+          "operation_labels": {
+            "read": "读取",
+            "transform": "处理",
+            "write": "写入",
+            "approve": "审批",
+            "notify": "通知",
+            "wait": "等待",
+            "condition": "判断",
+            "merge": "汇总",
+            "end": "结束"
+          },
+          "branch_labels": {
+            "default": "下一步",
+            "true": "满足",
+            "false": "不满足",
+            "case": "分支",
+            "error": "异常分支"
+          },
+          "risk_levels": {
+            "low": "低风险",
+            "medium": "中风险",
+            "high": "高风险"
+          },
+          "owner": "负责人",
+          "step_label": "步骤",
+          "unknown_step": "未找到的步骤",
+          "draft_errors": {
+            "syntax": "内容格式有误：请检查是否缺少逗号、引号或括号，修改后再点「重新校验」。",
+            "schema": "有必填内容缺失或取值不正确，请对照修改前的内容检查后再校验。",
+            "duplicate": "有两个步骤使用了同一个编号{step}，请改成不同的编号。",
+            "unknown_actor": "步骤{step}的负责人不在角色列表里，请改为已有的角色。",
+            "too_few_branches": "判断步骤{step}至少需要两个分支。",
+            "unknown_target": "步骤{step}指向的下一步不存在，请检查跳转目标。",
+            "unlabelled": "步骤{step}有一条连线缺少说明。",
+            "missing_condition": "判断步骤{step}的分支{branch}缺少判断条件。",
+            "unknown_error_target": "步骤{step}的异常处理指向了不存在的步骤。",
+            "unreachable": "这些步骤从流程起点走不到：{steps}，请为它们补上连线。",
+            "no_end": "流程缺少结束步骤，请至少保留一个没有下一步的步骤。",
+            "secret": "内容里疑似包含密钥或密码，请删除后再校验。",
+            "generic": "修改后的流程没有通过校验，请检查后重试。"
+          },
           "condition_pending": "（待重新生成后生效）",
           "confirmed_conditions": "已确认的条件",
           "remove_condition": "移除",

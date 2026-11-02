@@ -41,6 +41,7 @@ import { Section } from '@/shared/types/blocks/landing';
 import {
   buildClarificationAnswers,
   buildWorkflowGraphRows,
+  describeDraftError,
   getStepSourceBadge,
   mergeClarifications,
   resolveConfirmationQuestions,
@@ -120,6 +121,13 @@ type StudioCopy = {
   error_provider?: string;
   error_generic?: string;
   retry?: string;
+  operation_labels?: Record<string, string>;
+  branch_labels?: Record<string, string>;
+  risk_levels?: Record<string, string>;
+  owner?: string;
+  step_label?: string;
+  unknown_step?: string;
+  draft_errors?: Record<string, string>;
   condition_pending?: string;
   confirmed_conditions?: string;
   remove_condition?: string;
@@ -206,6 +214,20 @@ export function SopWorkflowStudio({
   const json = useMemo(
     () => (workflow ? JSON.stringify(workflow, null, 2) : ''),
     [workflow]
+  );
+  const actorNames = useMemo(
+    () =>
+      new Map(
+        (validatedAnalysis?.actors || []).map((actor) => [actor.id, actor.name])
+      ),
+    [validatedAnalysis]
+  );
+  const stepTitles = useMemo(
+    () =>
+      new Map(
+        (validatedAnalysis?.steps || []).map((step) => [step.id, step.title])
+      ),
+    [validatedAnalysis]
   );
   const graphRows = useMemo(
     () => (validatedAnalysis ? buildWorkflowGraphRows(validatedAnalysis) : []),
@@ -419,7 +441,27 @@ export function SopWorkflowStudio({
       setDraftIsValid(false);
       setReviewConfirmed(false);
       setValidationMessage('');
-      setError(reason instanceof Error ? reason.message : 'Invalid JSON');
+      const messages = copy.draft_errors || {};
+      const fallback =
+        messages.generic ||
+        'The edited workflow could not be validated. Check it and try again.';
+      setError(
+        describeDraftError(reason, analysisDraft, {
+          syntax: messages.syntax || fallback,
+          schema: messages.schema || fallback,
+          duplicate: messages.duplicate || fallback,
+          unknownActor: messages.unknown_actor || fallback,
+          tooFewBranches: messages.too_few_branches || fallback,
+          unknownTarget: messages.unknown_target || fallback,
+          unlabelled: messages.unlabelled || fallback,
+          missingCondition: messages.missing_condition || fallback,
+          unknownErrorTarget: messages.unknown_error_target || fallback,
+          unreachable: messages.unreachable || fallback,
+          noEnd: messages.no_end || fallback,
+          secret: messages.secret || fallback,
+          generic: fallback,
+        })
+      );
     }
   }
 
@@ -472,7 +514,12 @@ export function SopWorkflowStudio({
     ? [
         {
           title: copy.checklist || 'Deployment checklist',
-          items: validatedAnalysis.deploymentChecklist,
+          items: [
+            ...new Set([
+              ...validatedAnalysis.deploymentChecklist,
+              ...(workflow?.configurationRequirements || []),
+            ]),
+          ],
           icon: Zap,
         },
         {
@@ -490,7 +537,8 @@ export function SopWorkflowStudio({
         {
           title: copy.risks || 'Risks and mitigations',
           items: validatedAnalysis.risks.map(
-            (item) => `[${item.level}] ${item.title}: ${item.mitigation}`
+            (item) =>
+              `${copy.risk_levels?.[item.level] || item.level} · ${item.title}：${item.mitigation}`
           ),
           icon: ShieldCheck,
         },
@@ -902,8 +950,9 @@ export function SopWorkflowStudio({
                         <div className="mb-3 min-w-0 flex-1 rounded-2xl border border-white/[0.08] bg-black/20 p-4 backdrop-blur-xl transition hover:border-white/15 md:p-5">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-[9px] tracking-[0.12em] text-white/30 uppercase">
-                              {step.operation} ·{' '}
-                              {String(index).padStart(2, '0')}
+                              {copy.operation_labels?.[step.operation] ||
+                                step.operation}{' '}
+                              · {copy.step_label || 'Step'} {index + 1}
                             </span>
                             <span
                               className={cn(
@@ -925,9 +974,10 @@ export function SopWorkflowStudio({
                           <p className="mt-1.5 text-[11px] leading-5 text-white/38">
                             {step.description}
                           </p>
-                          {step.ownerActorId ? (
+                          {actorNames.get(step.ownerActorId || '') ? (
                             <div className="mt-3 text-[10px] text-white/35">
-                              Owner · {step.ownerActorId}
+                              {copy.owner || 'Owner'} ·{' '}
+                              {actorNames.get(step.ownerActorId || '')}
                             </div>
                           ) : null}
                           {edges.length ? (
@@ -951,14 +1001,20 @@ export function SopWorkflowStudio({
                                   >
                                     <span className="absolute -top-6 left-1/2 h-6 w-px -translate-x-1/2 bg-[#a99cff]/35" />
                                     <div className="flex items-center justify-between gap-2 text-[9px] tracking-[0.1em] text-[#a99cff] uppercase">
-                                      <span>{edge.branch}</span>
+                                      <span>
+                                        {copy.branch_labels?.[edge.branch] ||
+                                          edge.branch}
+                                      </span>
                                       <GitBranch className="size-3" />
                                     </div>
                                     <div className="mt-2 text-xs font-medium text-white/85">
                                       {edge.label}
                                     </div>
                                     <div className="mt-2 text-[10px] leading-4 text-white/42">
-                                      → {target?.title || edge.targetStepId}
+                                      →{' '}
+                                      {target?.title ||
+                                        copy.unknown_step ||
+                                        'Unknown step'}
                                     </div>
                                   </div>
                                 );
@@ -990,7 +1046,9 @@ export function SopWorkflowStudio({
                                     {item.scenario}: {item.action}
                                     {system
                                       ? ` → ${copy.system_error_handler || 'System error handler'}`
-                                      : ''}
+                                      : item.targetStepId
+                                        ? ` → ${stepTitles.get(item.targetStepId) || copy.unknown_step || 'Unknown step'}`
+                                        : ''}
                                   </div>
                                 );
                               })}
