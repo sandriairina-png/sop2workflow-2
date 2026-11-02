@@ -255,6 +255,48 @@ function normalizedOperator(value: unknown) {
 
 export const DECISION_FIELD = '{{$json.decision}}';
 
+const PARALLEL_LABEL = /同时|并行|并且|同步执行|parallel|in parallel/i;
+
+// Models often label mutually exclusive outcomes ("库存充足" / "库存不足")
+// as plain "default" edges, which n8n would run all at once. When a step has
+// several different targets, treat its default edges as exclusive branches,
+// unless the label says they run in parallel.
+function exclusiveBranches(connections: unknown[], operation: string) {
+  const edges = connections.map((connection, index) => {
+    const edge = (isRecord(connection) ? connection : {}) as Record<
+      string,
+      unknown
+    >;
+    return {
+      edge,
+      branch: normalizedBranch(
+        edge.branch,
+        operation,
+        index,
+        connections.length
+      ),
+    };
+  });
+  const targets = new Set(edges.map(({ edge }) => String(edge.targetStepId)));
+  const parallel = edges.every(
+    ({ edge, branch }) =>
+      branch !== 'default' || PARALLEL_LABEL.test(String(edge.label || ''))
+  );
+  if (targets.size < 2 || parallel) return edges;
+  let trueTaken = edges.some(({ branch }) => branch === 'true');
+  return edges.map(({ edge, branch }) => {
+    if (branch !== 'default' || PARALLEL_LABEL.test(String(edge.label || ''))) {
+      return { edge, branch };
+    }
+    if (operation === 'condition' && edges.length === 2) {
+      const next = trueTaken ? 'false' : 'true';
+      trueTaken = true;
+      return { edge, branch: next };
+    }
+    return { edge, branch: 'case' };
+  });
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -299,49 +341,44 @@ function normalizeSkeleton(raw: unknown) {
           ...record,
           source: source.success ? source.data : undefined,
           operation,
-          next: connections.map((connection, index) => {
-            const next = connection as Record<string, unknown>;
-            const condition =
-              next.condition && typeof next.condition === 'object'
-                ? (next.condition as Record<string, unknown>)
-                : undefined;
-            const explanation = String(
-              condition?.explanation || next.label || ''
-            );
-            const branch = normalizedBranch(
-              next.branch,
-              operation,
-              index,
-              connections.length
-            );
-            // A labelled condition branch without operands (e.g. "重复请求")
-            // is routed on {{$json.decision}}, like approval outcomes.
-            const decision =
-              !condition && operation === 'condition' && branch !== 'default'
-                ? {
-                    leftValue: DECISION_FIELD,
-                    operator: 'equals',
-                    rightValue: String(next.label || ''),
-                    explanation: String(next.label || ''),
-                  }
-                : undefined;
-            return {
-              ...next,
-              ...(condition
-                ? {
-                    condition: {
-                      ...condition,
-                      leftValue: condition.leftValue || explanation,
-                      explanation,
-                      operator: normalizedOperator(condition.operator),
-                    },
-                  }
-                : decision
-                  ? { condition: decision }
-                  : {}),
-              branch,
-            };
-          }),
+          next: exclusiveBranches(connections, operation).map(
+            ({ edge: next, branch }) => {
+              const condition =
+                next.condition && typeof next.condition === 'object'
+                  ? (next.condition as Record<string, unknown>)
+                  : undefined;
+              const explanation = String(
+                condition?.explanation || next.label || ''
+              );
+              // A labelled condition branch without operands (e.g. "重复请求")
+              // is routed on {{$json.decision}}, like approval outcomes.
+              const decision =
+                !condition && operation === 'condition' && branch !== 'default'
+                  ? {
+                      leftValue: DECISION_FIELD,
+                      operator: 'equals',
+                      rightValue: String(next.label || ''),
+                      explanation: String(next.label || ''),
+                    }
+                  : undefined;
+              return {
+                ...next,
+                ...(condition
+                  ? {
+                      condition: {
+                        ...condition,
+                        leftValue: condition.leftValue || explanation,
+                        explanation,
+                        operator: normalizedOperator(condition.operator),
+                      },
+                    }
+                  : decision
+                    ? { condition: decision }
+                    : {}),
+                branch,
+              };
+            }
+          ),
         };
       })
     : [];

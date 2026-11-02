@@ -563,3 +563,62 @@ test('routes labelled condition branches without operands on decision', async ()
     ]
   );
 });
+
+test('turns several default outcomes into exclusive branches', async () => {
+  const outcomes = {
+    ...validSkeleton,
+    steps: [
+      {
+        id: 'stock',
+        title: '查询库存',
+        description: '调用 ERP 查询',
+        operation: 'read',
+        next: [
+          { targetStepId: 'pick', label: '库存充足', branch: 'default' },
+          { targetStepId: 'buy', label: '库存不足', branch: 'default' },
+        ],
+      },
+      {
+        id: 'pick',
+        title: '领用',
+        description: '仓库领用',
+        operation: 'write',
+        next: [
+          { targetStepId: 'done', label: '同时通知仓库', branch: 'default' },
+          { targetStepId: 'buy', label: '同时登记台账', branch: 'default' },
+        ],
+      },
+      {
+        id: 'buy',
+        title: '审批',
+        description: '按金额审批',
+        operation: 'condition',
+        next: [
+          { targetStepId: 'done', label: '通过', branch: 'default' },
+          { targetStepId: 'pick', label: '驳回', branch: 'default' },
+        ],
+      },
+      validSkeleton.steps[2],
+    ],
+  };
+  const mock = provider({
+    skeleton: () => response(JSON.stringify(outcomes)),
+  });
+  const result = await analyzeSopWithEvolink(input, {
+    apiKey: 'test-provider-key',
+    fetch: mock.fetch,
+  });
+  const branches = result.analysis.steps.map((step) =>
+    step.next.map((edge) => edge.branch)
+  );
+  assert.deepEqual(branches, [
+    ['case', 'case'],
+    ['default', 'default'],
+    ['true', 'false'],
+    [],
+  ]);
+  assert.equal(
+    result.analysis.steps[2].next[0].condition?.leftValue,
+    '{{$json.decision}}'
+  );
+});

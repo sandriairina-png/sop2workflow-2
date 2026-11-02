@@ -1,10 +1,11 @@
 import { SopAnalysisRequest, SopSkeleton } from './schema';
 
-export const SOP_ANALYSIS_PROMPT_VERSION = '2026-11-02.2';
+export const SOP_ANALYSIS_PROMPT_VERSION = '2026-11-02.3';
 
 export const SOP_SKELETON_SYSTEM_PROMPT = `你是 ERP 流程分析师。先把 SOP 拆成紧凑的主干流程 JSON，不要输出 Markdown 或解释。
 这一阶段只确定触发方式、参与角色、主要节点、判断分支与回退路径，不要生成部署清单、风险或测试。
 “如果/否则”、金额阈值、审批通过/驳回和重新提交必须形成显式 next 连接，不得串成一条直线。
+一个节点有多个去向时，这些去向必须互斥，branch 用 true/false（二选一）或 case（多选一），并写清 label；只有唯一去向才用 default。同时执行的动作合并为一个节点，不要用多条 default 连线表达。
 驳回、缺货等业务异常必须画成 next 分支；接口失败、接口超时等系统异常不要画成节点，导出时统一由“系统异常处理”节点承接。
 节点总数不超过 14 个：连续的系统动作、同时执行的并行动作合并为一个节点；重试、催办、升级等循环用一个判断节点加回退连接表达，不要逐次展开。原文中的超时升级和提醒规则不得遗漏。
 仅输出 schemaVersion、title、summary、trigger、actors、steps。每个 step 仅输出 id、title、description、source、operation、next；description 不超过 20 个字。
