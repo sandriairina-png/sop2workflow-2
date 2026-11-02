@@ -646,3 +646,36 @@ test('names nodes and setup steps in the SOP language', () => {
     assert.doesNotMatch(item, /configure|set \{\{|step_/);
   }
 });
+
+test('compares field-to-field ranges as numbers', () => {
+  const result = compileN8nWorkflow(
+    analysis([
+      step({
+        id: 'stock',
+        operation: 'condition',
+        next: [
+          {
+            targetStepId: 'a',
+            label: '充足',
+            branch: 'true',
+            condition: {
+              leftValue: '{{$json.available_qty}}',
+              operator: 'greaterThanOrEqual',
+              rightValue: '{{$json.required_qty}}',
+              explanation: '库存充足',
+            },
+          },
+          condition('b', 'false', 'lessThan', 1, '不足'),
+        ],
+      }),
+      step({ id: 'a', operation: 'end' }),
+      step({ id: 'b', operation: 'end' }),
+    ])
+  );
+  const item = (
+    result.nodes.find((node) => node.id === 'stock')!.parameters
+      .conditions as any
+  ).conditions[0];
+  assert.equal(item.rightValue, '={{$json.required_qty}}');
+  assert.deepEqual(item.operator, { type: 'number', operation: 'gte' });
+});

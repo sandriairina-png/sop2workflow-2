@@ -58,19 +58,34 @@ export function toN8nExpression(value: string) {
   return trimmed;
 }
 
+const NUMERIC_OPERATORS = new Set([
+  'greaterThan',
+  'greaterThanOrEqual',
+  'lessThan',
+  'lessThanOrEqual',
+]);
+
 function conditionItem(connection: SopConnection, index: number) {
   const condition = connection.condition;
   if (!condition) return null;
+  // Range comparisons only exist for numbers in n8n, even when the right
+  // side is another field ({{$json.required_qty}}).
+  const numeric = NUMERIC_OPERATORS.has(condition.operator);
   const valueType =
-    typeof condition.rightValue === 'number'
+    typeof condition.rightValue === 'number' || numeric
       ? 'number'
       : typeof condition.rightValue === 'boolean'
         ? 'boolean'
         : 'string';
+  const rightValue =
+    typeof condition.rightValue === 'string' &&
+    condition.rightValue.includes('{{')
+      ? toN8nExpression(condition.rightValue)
+      : (condition.rightValue ?? '');
   return {
     id: `condition-${index + 1}`,
     leftValue: toN8nExpression(condition.leftValue),
-    rightValue: condition.rightValue ?? '',
+    rightValue,
     operator: {
       type: valueType,
       operation: operatorMap[condition.operator],

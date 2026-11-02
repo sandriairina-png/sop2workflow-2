@@ -38,6 +38,7 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { Section } from '@/shared/types/blocks/landing';
 
+import { SAMPLE_WORKFLOWS } from './sop-workflow-sample';
 import {
   buildClarificationAnswers,
   buildWorkflowGraphRows,
@@ -121,6 +122,10 @@ type StudioCopy = {
   error_provider?: string;
   error_generic?: string;
   retry?: string;
+  sample_badge?: string;
+  sample_title?: string;
+  sample_description?: string;
+  sample_try?: string;
   operation_labels?: Record<string, string>;
   branch_labels?: Record<string, string>;
   risk_levels?: Record<string, string>;
@@ -211,28 +216,28 @@ export function SopWorkflowStudio({
     () => (validatedAnalysis ? compileN8nWorkflow(validatedAnalysis) : null),
     [validatedAnalysis]
   );
+  // Before the first generation the canvas shows a sample result, so users
+  // see what they will get. Export stays tied to their own result.
+  const sample = SAMPLE_WORKFLOWS[copy.language === 'zh' ? 'zh' : 'en'];
+  const showingSample = !validatedAnalysis;
+  const preview = validatedAnalysis ?? sample.analysis;
+  const previewWorkflow = useMemo(
+    () => workflow ?? compileN8nWorkflow(sample.analysis),
+    [workflow, sample]
+  );
   const json = useMemo(
     () => (workflow ? JSON.stringify(workflow, null, 2) : ''),
     [workflow]
   );
   const actorNames = useMemo(
-    () =>
-      new Map(
-        (validatedAnalysis?.actors || []).map((actor) => [actor.id, actor.name])
-      ),
-    [validatedAnalysis]
+    () => new Map(preview.actors.map((actor) => [actor.id, actor.name])),
+    [preview]
   );
   const stepTitles = useMemo(
-    () =>
-      new Map(
-        (validatedAnalysis?.steps || []).map((step) => [step.id, step.title])
-      ),
-    [validatedAnalysis]
+    () => new Map(preview.steps.map((step) => [step.id, step.title])),
+    [preview]
   );
-  const graphRows = useMemo(
-    () => (validatedAnalysis ? buildWorkflowGraphRows(validatedAnalysis) : []),
-    [validatedAnalysis]
-  );
+  const graphRows = useMemo(() => buildWorkflowGraphRows(preview), [preview]);
   const examples = copy.example_values?.length
     ? copy.example_values
     : SOP_EXAMPLES;
@@ -256,9 +261,9 @@ export function SopWorkflowStudio({
     );
   const pendingQuestions = useMemo(
     () =>
-      validatedAnalysis
+      preview
         ? resolveConfirmationQuestions(
-            validatedAnalysis,
+            preview,
             confirmedConditions,
             {
               conventional: copy.option_conventional || 'Use common practice',
@@ -269,7 +274,7 @@ export function SopWorkflowStudio({
           )
         : [],
     [
-      validatedAnalysis,
+      preview,
       confirmedConditions,
       copy.option_conventional,
       copy.option_configure_later,
@@ -510,33 +515,31 @@ export function SopWorkflowStudio({
   ];
   const benefitIcons = [CheckCircle2, Workflow, ShieldCheck];
 
-  const setupSections = validatedAnalysis
+  const setupSections = preview
     ? [
         {
           title: copy.checklist || 'Deployment checklist',
           items: [
             ...new Set([
-              ...validatedAnalysis.deploymentChecklist,
-              ...(workflow?.configurationRequirements || []),
+              ...preview.deploymentChecklist,
+              ...previewWorkflow.configurationRequirements,
             ]),
           ],
           icon: Zap,
         },
         {
           title: copy.assumptions || 'Assumptions',
-          items: validatedAnalysis.assumptions,
+          items: preview.assumptions,
           icon: GitBranch,
         },
         {
           title: copy.tests || 'Validation plan',
-          items: validatedAnalysis.tests.map(
-            (item) => `${item.name}: ${item.expected}`
-          ),
+          items: preview.tests.map((item) => `${item.name}: ${item.expected}`),
           icon: CheckCircle2,
         },
         {
           title: copy.risks || 'Risks and mitigations',
-          items: validatedAnalysis.risks.map(
+          items: preview.risks.map(
             (item) =>
               `${copy.risk_levels?.[item.level] || item.level} · ${item.title}：${item.mitigation}`
           ),
@@ -869,41 +872,50 @@ export function SopWorkflowStudio({
           </div>
 
           <div className="linearity-product-canvas min-h-[600px] md:min-h-[680px]">
-            {!result ? (
-              <div className="flex min-h-[600px] flex-col items-center justify-center px-6 text-center md:min-h-[680px]">
-                <div className="linearity-empty-flow mb-8 flex items-center">
-                  <span className="grid size-14 place-items-center rounded-2xl border border-white/10 bg-black/25 text-white/45">
-                    <FileInput className="size-5" />
-                  </span>
-                  <span className="h-px w-20 bg-white/22 md:w-32" />
-                  <span className="grid size-14 place-items-center rounded-2xl border border-white/16 bg-[#15161c] text-white">
-                    <Workflow className="size-5" />
-                  </span>
+            {showingSample ? (
+              <div className="mx-5 mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#a99cff]/25 bg-[#a99cff]/[0.06] px-5 py-4 md:mx-10 md:mt-8">
+                <div className="min-w-0">
+                  <div className="text-[10px] tracking-[0.08em] text-[#a99cff]">
+                    {copy.sample_badge || 'Sample result'}
+                  </div>
+                  <div className="mt-1.5 text-sm font-medium text-white/90">
+                    {copy.sample_title ||
+                      'This workflow was generated from the order fulfilment example.'}
+                  </div>
+                  <p className="mt-1 text-[11px] leading-5 text-white/45">
+                    {copy.sample_description ||
+                      'Paste your own SOP to get the same nodes, branches, exception handling and an n8n file.'}
+                  </p>
                 </div>
-                <div className="text-[10px] tracking-[0.08em] text-[#a99cff]">
-                  {copy.awaiting || 'Awaiting source'}
-                </div>
-                <h3 className="mt-4 max-w-xl text-2xl font-semibold tracking-[-0.035em] md:text-4xl">
-                  {copy.empty_title}
-                </h3>
-                <p className="mt-4 max-w-lg text-sm leading-7 text-white/38">
-                  {copy.empty_description}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSop(sample.sop);
+                    setMode('auto');
+                    revealInput();
+                  }}
+                  className="shrink-0 rounded-full bg-white px-4 py-2 text-[11px] font-medium text-black transition hover:bg-white/88"
+                >
+                  {copy.sample_try || 'Try this example'}
+                </button>
               </div>
-            ) : activeTab === 'flow' ? (
+            ) : null}
+            {activeTab === 'flow' ? (
               <div className="p-5 md:p-10">
                 <div className="mb-10 flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="text-[10px] tracking-[0.08em] text-[#a99cff]">
-                      {copy.generated}
+                      {showingSample
+                        ? copy.sample_badge || 'Sample result'
+                        : copy.generated}
                     </div>
                     <h3 className="mt-3 text-xl font-semibold tracking-[-0.025em] md:text-3xl">
-                      {validatedAnalysis?.title}
+                      {preview.title}
                     </h3>
                     <p className="mt-2 text-xs text-white/40">
-                      {validatedAnalysis?.summary}
+                      {preview.summary}
                     </p>
-                    {result.meta.detailsIncomplete ? (
+                    {result?.meta.detailsIncomplete ? (
                       <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-[#f5c46b]/25 bg-[#f5c46b]/[0.06] px-4 py-2.5 text-[11px] text-[#f5d9a3]">
                         <span>
                           {copy.details_incomplete ||
@@ -921,7 +933,7 @@ export function SopWorkflowStudio({
                     ) : null}
                   </div>
                   <span className="rounded-full border border-white/10 bg-black/20 px-4 py-2 text-[10px] text-white/45">
-                    {validatedAnalysis?.steps.length} {copy.nodes}
+                    {preview.steps.length} {copy.nodes}
                   </span>
                 </div>
                 <div className="mx-auto max-w-4xl">
@@ -990,7 +1002,7 @@ export function SopWorkflowStudio({
                             >
                               <span className="absolute top-0 left-1/2 h-6 w-px -translate-x-1/2 bg-[#a99cff]/35" />
                               {edges.map((edge) => {
-                                const target = validatedAnalysis?.steps.find(
+                                const target = preview.steps.find(
                                   (candidate) =>
                                     candidate.id === edge.targetStepId
                                 );
@@ -1130,6 +1142,7 @@ export function SopWorkflowStudio({
                         {pendingQuestions.map((question, index) => (
                           <fieldset
                             key={question.id}
+                            disabled={showingSample}
                             className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-5"
                           >
                             <legend className="px-1 text-sm leading-6 font-medium text-white/88">
@@ -1211,7 +1224,12 @@ export function SopWorkflowStudio({
                         ))}
                       </div>
                     ) : null}
-                    <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <div
+                      className={cn(
+                        'mt-5 flex flex-wrap items-center gap-3',
+                        showingSample && 'hidden'
+                      )}
+                    >
                       <button
                         type="button"
                         onClick={applyClarifications}
@@ -1251,7 +1269,12 @@ export function SopWorkflowStudio({
                   ))}
                 </div>
 
-                <details className="group rounded-2xl border border-white/10 bg-black/20">
+                <details
+                  className={cn(
+                    'group rounded-2xl border border-white/10 bg-black/20',
+                    showingSample && 'hidden'
+                  )}
+                >
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 marker:hidden">
                     <span>
                       <span className="block text-sm font-medium">

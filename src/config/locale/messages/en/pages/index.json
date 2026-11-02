@@ -138,6 +138,10 @@
             "secret": "The content seems to include a key or password. Remove it and validate again.",
             "generic": "The edited workflow did not pass validation. Check it and try again."
           },
+          "sample_badge": "Sample result",
+          "sample_title": "This workflow was generated from the order fulfilment example SOP",
+          "sample_description": "Paste your own SOP to get the same steps, branches, exception handling, open questions and an n8n file.",
+          "sample_try": "Try this example",
           "condition_pending": "(applies after regenerating)",
           "confirmed_conditions": "Confirmed conditions",
           "remove_condition": "Remove",

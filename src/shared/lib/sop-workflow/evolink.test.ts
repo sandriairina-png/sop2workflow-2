@@ -622,3 +622,21 @@ test('turns several default outcomes into exclusive branches', async () => {
     '{{$json.decision}}'
   );
 });
+
+test('corrects a manual trigger when the SOP states a daily time', async () => {
+  const run = async (sop: string, triggerHint: 'auto' | 'webhook') => {
+    const mock = provider({});
+    const result = await analyzeSopWithEvolink(
+      { sop, locale: 'zh', triggerHint },
+      { apiKey: 'test-provider-key', fetch: mock.fetch }
+    );
+    return result.analysis.trigger;
+  };
+  assert.deepEqual(await run('每天晚上 10 点汇总退货单。', 'auto'), {
+    type: 'schedule',
+    description: '员工提交报销申请',
+    schedule: { hour: 22, minute: 0, timezone: 'Asia/Shanghai' },
+  });
+  assert.equal((await run('员工提交报销。', 'auto')).type, 'manual');
+  assert.equal((await run('每天 9 点检查。', 'webhook')).type, 'webhook');
+});

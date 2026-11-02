@@ -505,6 +505,8 @@ export async function analyzeSopWithEvolink(
     skeleton = readSkeleton(payload);
   }
 
+  skeleton = resolveTrigger(skeleton, input);
+
   // Stage 2: node details and the rollout plan are independent, so they run in
   // parallel and the skeleton is never rewritten. A failed part degrades the
   // result instead of failing the request.
@@ -588,6 +590,36 @@ export async function analyzeSopWithEvolink(
       ...(incomplete ? { detailsIncomplete: true } : {}),
     },
   };
+}
+
+const DAILY_TIME =
+  /(?:每天|每日|每个工作日|工作日)\s*(上午|早上|中午|下午|晚上)?\s*(\d{1,2})\s*(?:点|时|:|：)\s*(?:(\d{1,2})\s*分?)?|every\s+(?:day|weekday)[^.]*?\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i;
+
+// The user's explicit trigger choice wins. In auto mode, a "manual" guess is
+// corrected when the SOP clearly states a daily time ("每天 9 点").
+function resolveTrigger(
+  skeleton: SopSkeleton,
+  input: SopAnalysisRequest
+): SopSkeleton {
+  const trigger = { ...skeleton.trigger };
+  if (input.triggerHint !== 'auto') {
+    trigger.type = input.triggerHint;
+  } else if (trigger.type === 'manual' && DAILY_TIME.test(input.sop)) {
+    trigger.type = 'schedule';
+  }
+  if (trigger.type === 'schedule' && !trigger.schedule) {
+    const match = input.sop.match(DAILY_TIME);
+    let hour = Number(match?.[2] ?? match?.[4] ?? 9);
+    const minute = Number(match?.[3] ?? match?.[5] ?? 0);
+    const period = (match?.[1] || match?.[6] || '').toLowerCase();
+    if (/下午|晚上|pm/.test(period) && hour < 12) hour += 12;
+    trigger.schedule = {
+      hour: Math.min(Math.max(hour, 0), 23),
+      minute: Math.min(Math.max(minute, 0), 59),
+      timezone: 'Asia/Shanghai',
+    };
+  }
+  return { ...skeleton, trigger };
 }
 
 function parsePartJson(payload: ProviderPayload) {

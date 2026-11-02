@@ -134,6 +134,10 @@
             "secret": "内容里疑似包含密钥或密码，请删除后再校验。",
             "generic": "修改后的流程没有通过校验，请检查后重试。"
           },
+          "sample_badge": "示例结果",
+          "sample_title": "这是「订单履约」示例 SOP 生成的工作流",
+          "sample_description": "输入你自己的 SOP，就能得到同样结构的步骤、分支、异常处理、待确认问题和可导入 n8n 的文件。",
+          "sample_try": "用这个示例生成",
           "condition_pending": "（待重新生成后生效）",
           "confirmed_conditions": "已确认的条件",
           "remove_condition": "移除",
