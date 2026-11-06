@@ -104,6 +104,8 @@ function safeError(error: unknown) {
   switch (error.code) {
     case 'not_configured':
       return { status: 503, code: 'not_configured' };
+    case 'account_unavailable':
+      return { status: 503, code: 'provider_account' };
     case 'timeout':
       return { status: 504, code: 'provider_timeout' };
     case 'invalid_output':

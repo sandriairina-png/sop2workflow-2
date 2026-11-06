@@ -121,6 +121,7 @@ type StudioCopy = {
   error_timeout?: string;
   error_invalid_output?: string;
   error_provider?: string;
+  error_provider_account?: string;
   error_generic?: string;
   retry?: string;
   sample_badge?: string;
@@ -402,6 +403,7 @@ export function SopWorkflowStudio({
           client_daily_limit: copy.error_daily_limit || copy.error_busy,
           global_daily_limit: copy.error_daily_limit || copy.error_busy,
           not_configured: copy.error_config,
+          provider_account: copy.error_provider_account || copy.error_config,
           provider_timeout: copy.error_timeout,
           invalid_output: copy.error_invalid_output,
           provider_error: copy.error_provider,

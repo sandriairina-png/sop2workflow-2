@@ -92,6 +92,7 @@
           "error_timeout": "This SOP has many steps and did not finish in time (your text is kept). Click Regenerate first; if it still fails, split the SOP into two parts, e.g. paste only the approval part.",
           "error_invalid_output": "The model returned an incomplete structure this time (your text is kept). Regenerate usually fixes it; if it keeps failing, remove some minor details and try again.",
           "error_provider": "The model service did not respond (your text is kept). Wait about 10 seconds, then click Regenerate.",
+          "error_provider_account": "The model service account is out of credit or its API key is invalid, so regenerating will not help. Top up or check the key in EvoLink, then generate again. Meanwhile, the sample result below shows the full output.",
           "retry": "Regenerate",
           "error_too_frequent": "That was too fast. Wait 10 seconds, then click Regenerate.",
           "error_daily_limit": "Today's generation limit has been reached. It resets tomorrow.",

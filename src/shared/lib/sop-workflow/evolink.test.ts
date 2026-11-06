@@ -647,3 +647,17 @@ test('corrects a manual trigger when the SOP states a daily time', async () => {
   assert.equal((await run('员工提交报销。', 'auto')).type, 'manual');
   assert.equal((await run('每天 9 点检查。', 'webhook')).type, 'webhook');
 });
+
+test('stops at once when the account is out of credit', async () => {
+  const mock = provider({
+    skeleton: () => new Response('payment required', { status: 402 }),
+  });
+  await assert.rejects(
+    analyzeSopWithEvolink(input, {
+      apiKey: 'test-provider-key',
+      fetch: mock.fetch,
+    }),
+    (error: any) => error.code === 'account_unavailable'
+  );
+  assert.equal(mock.attempts.skeleton, 1);
+});

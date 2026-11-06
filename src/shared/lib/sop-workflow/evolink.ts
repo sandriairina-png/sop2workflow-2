@@ -37,6 +37,7 @@ export class EvolinkError extends Error {
   constructor(
     public code:
       | 'not_configured'
+      | 'account_unavailable'
       | 'timeout'
       | 'provider_error'
       | 'invalid_output',
@@ -124,6 +125,14 @@ async function requestProvider(
       signal: controller.signal,
       cache: 'no-store',
     });
+    // 401/402/403 mean the key is wrong or the balance is used up; retrying
+    // cannot help, so callers must stop and tell the operator.
+    if ([401, 402, 403].includes(response.status)) {
+      throw new EvolinkError(
+        'account_unavailable',
+        `EvoLink returned status ${response.status}.`
+      );
+    }
     if (!response.ok) {
       throw new EvolinkError(
         'provider_error',
@@ -492,7 +501,11 @@ export async function analyzeSopWithEvolink(
     usage = addUsage(usage, usageOf(payload));
     skeleton = readSkeleton(payload);
   } catch (error) {
-    if (!(error instanceof EvolinkError) || error.code === 'not_configured') {
+    if (
+      !(error instanceof EvolinkError) ||
+      error.code === 'not_configured' ||
+      error.code === 'account_unavailable'
+    ) {
       throw error;
     }
     // Retrying with the same budget fails the same way, so ask for a smaller outline.
