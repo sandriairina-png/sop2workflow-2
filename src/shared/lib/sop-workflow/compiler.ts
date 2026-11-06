@@ -1,6 +1,7 @@
 import { validateSopAnalysisGraph } from './graph';
 import {
   classifyErrorHandling,
+  isAiAddedErrorHandling,
   SopAnalysis,
   SopConnection,
   SopStep,
@@ -549,6 +550,19 @@ export function compileN8nWorkflow(input: SopAnalysis): N8nWorkflow {
       say(
         `${handler.name}：为接口失败、超时等系统异常配置告警渠道，例如邮件或企业微信。`,
         `${handler.name}: send system errors (API failures, timeouts) to an alert channel such as email or IM.`
+      )
+    );
+  }
+  const aiAdded = analysis.steps.flatMap((step) =>
+    step.errorHandling
+      .filter(isAiAddedErrorHandling)
+      .map((item) => `${step.title} · ${item.scenario}`)
+  );
+  if (aiAdded.length) {
+    requirements.push(
+      say(
+        `以下异常处理由 AI 补充，原 SOP 没有写：${quoted(aiAdded, true)}。请确认要通知谁、怎么处理。`,
+        `These exception rules were added by AI and are not in the SOP: ${quoted(aiAdded, false)}. Confirm who is notified and how each is handled.`
       )
     );
   }

@@ -397,6 +397,16 @@ function normalizedErrorKind(value: unknown) {
   return undefined;
 }
 
+// Anything other than an explicit "from the SOP" counts as AI-added, so the
+// user is asked to review it.
+function normalizedErrorSource(value: unknown) {
+  const text = String(value || '').toLowerCase();
+  if (text === 'source_text' || /原文|sop/.test(text)) {
+    return 'source_text' as const;
+  }
+  return 'ai_inferred' as const;
+}
+
 function parseSkeleton(payload: ProviderPayload) {
   const content = payload.choices?.[0]?.message?.content;
   if (!content)
@@ -689,6 +699,7 @@ function readStepDetails(raw: Record<string, unknown>): StepDetail[] {
       errorHandling: Array.isArray(step.errorHandling)
         ? step.errorHandling.filter(isRecord).map((item) => ({
             ...item,
+            source: normalizedErrorSource(item.source),
             kind:
               normalizedErrorKind(item.kind) ||
               classifyErrorHandling({

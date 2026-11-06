@@ -29,6 +29,7 @@ import StarBorder from '@/shared/components/ui/star-border';
 import {
   classifyErrorHandling,
   compileN8nWorkflow,
+  isAiAddedErrorHandling,
   SOP_EXAMPLES,
   SopAnalysis,
   SopAnalysisResponse,
@@ -141,6 +142,11 @@ type StudioCopy = {
   error_kind_system?: string;
   error_kind_business?: string;
   system_error_handler?: string;
+  error_source_ai?: string;
+  error_source_text?: string;
+  export_confirm?: string;
+  export_confirm_short?: string;
+  export_hints?: Record<string, string>;
   details_incomplete?: string;
   complete_details?: string;
   local_session?: string;
@@ -211,6 +217,9 @@ export function SopWorkflowStudio({
   const [appliedClarifications, setAppliedClarifications] = useState<
     SopClarification[]
   >([]);
+  // Why copy/download is unavailable, shown when the user clicks them anyway.
+  const [exportHint, setExportHint] = useState('');
+  const exportHintTimer = useRef<number | undefined>(undefined);
 
   const workflow = useMemo(
     () => (validatedAnalysis ? compileN8nWorkflow(validatedAnalysis) : null),
@@ -238,6 +247,49 @@ export function SopWorkflowStudio({
     [preview]
   );
   const graphRows = useMemo(() => buildWorkflowGraphRows(preview), [preview]);
+  const aiErrorCount = useMemo(
+    () =>
+      preview.steps.reduce(
+        (count, step) =>
+          count + step.errorHandling.filter(isAiAddedErrorHandling).length,
+        0
+      ),
+    [preview]
+  );
+  const exportBlocker = busy
+    ? 'busy'
+    : !json
+      ? 'sample'
+      : !draftIsValid
+        ? 'invalid'
+        : !reviewConfirmed
+          ? 'confirm'
+          : '';
+  const exportHints = copy.export_hints || {};
+  const exportBlockerText = (reason: string) => {
+    const fallback: Record<string, string> = {
+      busy: 'Generating. Please wait a moment.',
+      sample:
+        'This is a sample. Generate your own workflow to review and download it.',
+      invalid:
+        'The JSON under Advanced has unvalidated edits. Open Advanced and click Revalidate.',
+      confirm:
+        'Tick "Reviewed" next to this button first, then copy or download.',
+    };
+    const text = exportHints[reason] || fallback[reason] || '';
+    if (reason !== 'confirm' || !aiErrorCount) return text;
+    const extra = (
+      exportHints.ai_errors ||
+      '{count} exception rules were added by AI; check them first.'
+    ).replace('{count}', String(aiErrorCount));
+    return `${text} ${extra}`;
+  };
+  function showExportHint(reason: string) {
+    setExportHint(reason);
+    window.clearTimeout(exportHintTimer.current);
+    exportHintTimer.current = window.setTimeout(() => setExportHint(''), 4500);
+  }
+  useEffect(() => () => window.clearTimeout(exportHintTimer.current), []);
   const examples = copy.example_values?.length
     ? copy.example_values
     : SOP_EXAMPLES;
@@ -471,13 +523,19 @@ export function SopWorkflowStudio({
   }
 
   async function copyJson() {
-    if (!json || !reviewConfirmed) return;
+    if (exportBlocker) {
+      showExportHint(exportBlocker);
+      return;
+    }
     await navigator.clipboard.writeText(json);
     setCopied(true);
   }
 
   function downloadJson() {
-    if (!json || !reviewConfirmed) return;
+    if (exportBlocker) {
+      showExportHint(exportBlocker);
+      return;
+    }
     const url = URL.createObjectURL(
       new Blob([json], { type: 'application/json;charset=utf-8' })
     );
@@ -844,30 +902,81 @@ export function SopWorkflowStudio({
                   {value === 'flow' ? copy.preview : copy.setup}
                 </button>
               ))}
-              <button
-                type="button"
-                disabled={!json || !reviewConfirmed}
-                onClick={copyJson}
-                className="hidden rounded-full border border-white/10 p-2 text-white/45 transition hover:text-white disabled:opacity-25 sm:block"
-                aria-label={copy.copy || 'Copy JSON'}
-              >
-                {copied ? (
-                  <Check className="size-3.5 text-[#7cff67]" />
-                ) : (
-                  <Clipboard className="size-3.5" />
+              <div className="relative flex items-center gap-2">
+                {showingSample ? null : (
+                  <label
+                    title={copy.review_confirm}
+                    className={cn(
+                      'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] transition',
+                      reviewConfirmed
+                        ? 'border-[#7cff67]/30 bg-[#7cff67]/[0.06] text-[#a9f59d]'
+                        : 'border-white/15 text-white/65 hover:border-white/30 hover:text-white',
+                      exportHint === 'confirm' &&
+                        'border-[#f5c46b]/70 text-[#ffe2ad] ring-2 ring-[#f5c46b]/25',
+                      (!draftIsValid || busy) && 'cursor-not-allowed opacity-50'
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={reviewConfirmed}
+                      disabled={!draftIsValid || busy}
+                      onChange={(event) => {
+                        setReviewConfirmed(event.target.checked);
+                        if (event.target.checked) setExportHint('');
+                      }}
+                      className="size-3.5 accent-[#7cff67]"
+                    />
+                    <span className="sm:hidden">
+                      {copy.export_confirm_short || 'Reviewed'}
+                    </span>
+                    <span className="hidden sm:inline">
+                      {copy.export_confirm || 'I reviewed this workflow'}
+                    </span>
+                  </label>
                 )}
-              </button>
-              <button
-                type="button"
-                disabled={!json || !reviewConfirmed}
-                onClick={downloadJson}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-[10px] text-white/48 transition hover:bg-white/[0.05] hover:text-white disabled:opacity-25"
-              >
-                <Download className="size-3" />
-                <span className="hidden sm:inline">
-                  {copy.download || 'Download'}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  aria-disabled={Boolean(exportBlocker)}
+                  title={exportBlocker ? exportBlockerText(exportBlocker) : ''}
+                  onClick={copyJson}
+                  className={cn(
+                    'hidden rounded-full border border-white/10 p-2 text-white/45 transition sm:block',
+                    exportBlocker ? 'opacity-35' : 'hover:text-white'
+                  )}
+                  aria-label={copy.copy || 'Copy JSON'}
+                >
+                  {copied ? (
+                    <Check className="size-3.5 text-[#7cff67]" />
+                  ) : (
+                    <Clipboard className="size-3.5" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  aria-disabled={Boolean(exportBlocker)}
+                  title={exportBlocker ? exportBlockerText(exportBlocker) : ''}
+                  onClick={downloadJson}
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[10px] transition',
+                    exportBlocker
+                      ? 'border-white/10 text-white/48 opacity-35'
+                      : 'border-white bg-white font-medium text-black hover:bg-white/88'
+                  )}
+                >
+                  <Download className="size-3" />
+                  <span className="hidden sm:inline">
+                    {copy.download || 'Download'}
+                  </span>
+                </button>
+                {exportHint ? (
+                  <div
+                    role="status"
+                    className="absolute top-full right-0 z-30 mt-2 w-72 rounded-xl border border-[#f5c46b]/30 bg-[#1a1710] px-3.5 py-2.5 text-[11px] leading-5 text-[#f5d9a3] shadow-2xl"
+                  >
+                    {exportBlockerText(exportHint)}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -1038,16 +1147,30 @@ export function SopWorkflowStudio({
                               {step.errorHandling.map((item) => {
                                 const system =
                                   classifyErrorHandling(item) === 'system';
+                                const aiAdded = isAiAddedErrorHandling(item);
                                 return (
                                   <div
                                     key={`${step.id}-${item.scenario}`}
                                     className={cn(
                                       'linearity-branch-lane rounded-xl border px-3 py-2 text-[10px] leading-5',
+                                      aiAdded && 'border-dashed',
                                       system
                                         ? 'border-[#ff9f9f]/20 bg-[#ff9f9f]/[0.05] text-[#ffc5c5]'
                                         : 'border-[#f5c46b]/20 bg-[#f5c46b]/[0.05] text-[#f5d9a3]'
                                     )}
                                   >
+                                    <span
+                                      className={cn(
+                                        'mr-2 inline-block rounded-full border px-1.5 text-[9px] leading-4 font-medium',
+                                        aiAdded
+                                          ? 'border-[#a99cff]/35 bg-[#a99cff]/[0.1] text-[#c5bcff]'
+                                          : 'border-[#7cff67]/25 bg-[#7cff67]/[0.07] text-[#a9f59d]'
+                                      )}
+                                    >
+                                      {aiAdded
+                                        ? copy.error_source_ai || 'Added by AI'
+                                        : copy.error_source_text || 'From SOP'}
+                                    </span>
                                     <span className="mr-2 font-semibold">
                                       {system
                                         ? copy.error_kind_system ||
@@ -1334,19 +1457,6 @@ export function SopWorkflowStudio({
                           copy.review_required ||
                           'Validate JSON before confirming.'}
                       </span>
-                      <label className="inline-flex items-center gap-2 text-[11px] text-white/60">
-                        <input
-                          type="checkbox"
-                          checked={reviewConfirmed}
-                          disabled={!draftIsValid}
-                          onChange={(event) =>
-                            setReviewConfirmed(event.target.checked)
-                          }
-                          className="size-4 accent-white"
-                        />
-                        {copy.review_confirm ||
-                          'I reviewed the branches, risks, and required configuration.'}
-                      </label>
                     </div>
                   </div>
                 </details>

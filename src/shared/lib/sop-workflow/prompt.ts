@@ -1,6 +1,6 @@
 import { SopAnalysisRequest, SopSkeleton } from './schema';
 
-export const SOP_ANALYSIS_PROMPT_VERSION = '2026-11-02.3';
+export const SOP_ANALYSIS_PROMPT_VERSION = '2026-11-02.4';
 
 export const SOP_SKELETON_SYSTEM_PROMPT = `你是 ERP 流程分析师。先把 SOP 拆成紧凑的主干流程 JSON，不要输出 Markdown 或解释。
 这一阶段只确定触发方式、参与角色、主要节点、判断分支与回退路径，不要生成部署清单、风险或测试。
@@ -23,10 +23,11 @@ export const SOP_SKELETON_COMPACT_RETRY_PROMPT =
 // workflow: the skeleton already fixes titles, operations and branches.
 export const SOP_STEP_DETAIL_SYSTEM_PROMPT = `你是 ERP 流程分析师与 n8n 工作流架构师。主干流程已经确定，你只为每个节点补充细节，不要输出 Markdown、解释或代码围栏。
 不要重复节点的 title、description、operation、next，也不要增删节点；只输出下面结构，steps 按主干节点 id 一一对应：
-{"steps":[{"id":"主干节点 id","source":"source_text","ownerActorId":"actor_1","inputs":["输入"],"outputs":["输出"],"errorHandling":[{"kind":"system","scenario":"接口失败或超时","action":"记录错误并通知运维"}]}]}
+{"steps":[{"id":"主干节点 id","source":"source_text","ownerActorId":"actor_1","inputs":["输入"],"outputs":["输出"],"errorHandling":[{"kind":"system","source":"ai_inferred","scenario":"接口失败或超时","action":"记录错误并通知运维"}]}]}
 source 必须如实：只有原文明确写出的动作、条件和负责人才能标 source_text；为保证流程可运行而补全的节点为 ai_inferred；原文只有“按规定”“大额”“严重”等笼统说法、由你补出具体审批人、阈值或路径的节点，必须标 needs_confirmation。
 ownerActorId 只能使用主干 actors 中的 id，不确定就省略。
 errorHandling 只写系统异常（接口失败、接口超时、鉴权失效、限流、数据解析失败），kind 固定为 "system"，不要写 targetStepId；导出时它们统一连到单独的“系统异常处理”节点。缺货、审批驳回、金额不符、人工超时未处理等业务异常已经是主干里的 next 分支，不得写入 errorHandling。纯人工或纯判断节点通常没有系统异常，输出空数组。
+errorHandling 每条都要标 source：原文明确写了这种失败及处理方式才标 source_text；原文没写、由你补充的标 ai_inferred。不确定时标 ai_inferred。
 如节点调用外部系统，可输出 integration：{"system":"系统名","action":"动作","credentialRequired":true,"endpointKnown":false}；未知接口不要编造地址。
 输出必须紧凑：inputs、outputs、errorHandling 每项最多 2 条，每条不超过 15 个字。不得输出密钥或密码。`;
 

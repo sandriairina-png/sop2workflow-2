@@ -66,11 +66,13 @@ export const SAMPLE_WORKFLOWS: Record<
           errorHandling: [
             {
               kind: 'system',
+              source: 'ai_inferred',
               scenario: 'ERP接口请求超时',
               action: '重试并告警通知运维',
             },
             {
               kind: 'system',
+              source: 'ai_inferred',
               scenario: 'ERP接口鉴权失效',
               action: '记录日志并提醒更新凭据',
             },
@@ -118,6 +120,7 @@ export const SAMPLE_WORKFLOWS: Record<
           errorHandling: [
             {
               kind: 'system',
+              source: 'ai_inferred',
               scenario: '库存查询接口失败',
               action: '记录异常并通知运维',
             },
@@ -148,6 +151,7 @@ export const SAMPLE_WORKFLOWS: Record<
           errorHandling: [
             {
               kind: 'system',
+              source: 'ai_inferred',
               scenario: '通知服务调用失败',
               action: '写入重试队列并告警',
             },
@@ -178,6 +182,7 @@ export const SAMPLE_WORKFLOWS: Record<
           errorHandling: [
             {
               kind: 'system',
+              source: 'ai_inferred',
               scenario: '消息或日志接口失败',
               action: '记录错误并通知运维',
             },
@@ -360,6 +365,7 @@ export const SAMPLE_WORKFLOWS: Record<
           errorHandling: [
             {
               kind: 'system',
+              source: 'ai_inferred',
               scenario: 'ERP API failure',
               action: 'Log error and alert',
             },
@@ -390,6 +396,7 @@ export const SAMPLE_WORKFLOWS: Record<
           errorHandling: [
             {
               kind: 'system',
+              source: 'ai_inferred',
               scenario: 'Message send failure',
               action: 'Retry and alert',
             },
@@ -420,6 +427,7 @@ export const SAMPLE_WORKFLOWS: Record<
           errorHandling: [
             {
               kind: 'system',
+              source: 'ai_inferred',
               scenario: 'Log write failure',
               action: 'Alert administrator',
             },

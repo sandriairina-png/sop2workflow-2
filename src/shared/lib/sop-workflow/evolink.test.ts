@@ -387,6 +387,7 @@ test('classifies step error handling and drops system targets', async () => {
                 },
                 {
                   scenario: '审批超时',
+                  source: 'source_text',
                   action: '催办上级',
                   targetStepId: 'review',
                 },
@@ -405,11 +406,17 @@ test('classifies step error handling and drops system targets', async () => {
   });
   const [submit, review] = result.analysis.steps;
   assert.deepEqual(submit.errorHandling, [
-    { scenario: '信用接口查询超时', action: '告警', kind: 'system' },
+    {
+      scenario: '信用接口查询超时',
+      action: '告警',
+      kind: 'system',
+      source: 'ai_inferred',
+    },
     {
       scenario: '审批超时',
       action: '催办上级',
       kind: 'business',
+      source: 'source_text',
       targetStepId: 'review',
     },
   ]);

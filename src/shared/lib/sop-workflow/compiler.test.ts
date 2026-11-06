@@ -679,3 +679,37 @@ test('compares field-to-field ranges as numbers', () => {
   assert.equal(item.rightValue, '={{$json.required_qty}}');
   assert.deepEqual(item.operator, { type: 'number', operation: 'gte' });
 });
+
+test('lists AI-added exception handling for review, not SOP-stated ones', () => {
+  const result = compileN8nWorkflow(
+    analysis([
+      step({
+        id: 'erp-read',
+        title: '拉取订单',
+        operation: 'read',
+        next: [{ targetStepId: 'done', label: '成功', branch: 'default' }],
+        errorHandling: [
+          {
+            kind: 'system',
+            source: 'ai_inferred',
+            scenario: '接口超时',
+            action: '通知运维',
+          },
+          {
+            kind: 'system',
+            source: 'source_text',
+            scenario: '鉴权失效',
+            action: '通知管理员',
+          },
+        ],
+      }),
+      step({ id: 'done', operation: 'end' }),
+    ])
+  );
+  const note = result.configurationRequirements.find((item) =>
+    item.includes('由 AI 补充')
+  );
+  assert.ok(note);
+  assert.ok(note.includes('拉取订单 · 接口超时'));
+  assert.ok(!note.includes('鉴权失效'));
+});

@@ -43,8 +43,14 @@ export type SopStepSource = z.infer<typeof SopStepSourceSchema>;
 export const SopErrorKindSchema = z.enum(['system', 'business']);
 export type SopErrorKind = z.infer<typeof SopErrorKindSchema>;
 
+// Whether the SOP itself describes this exception or the model added it so
+// the workflow can run. Older drafts have no source and count as AI-added.
+export const SopErrorSourceSchema = z.enum(['source_text', 'ai_inferred']);
+export type SopErrorSource = z.infer<typeof SopErrorSourceSchema>;
+
 export const SopErrorHandlingSchema = z.object({
   kind: SopErrorKindSchema.optional(),
+  source: SopErrorSourceSchema.optional(),
   scenario: z.string().min(1),
   action: z.string().min(1),
   targetStepId: z.string().min(1).optional(),
@@ -74,6 +80,10 @@ function errorKindOf(text: string): SopErrorKind | undefined {
 export function classifyErrorHandling(item: SopErrorHandling): SopErrorKind {
   if (item.kind) return item.kind;
   return errorKindOf(item.scenario) || errorKindOf(item.action) || 'system';
+}
+
+export function isAiAddedErrorHandling(item: SopErrorHandling) {
+  return item.source !== 'source_text';
 }
 
 export const SopStepSchema = z.object({
