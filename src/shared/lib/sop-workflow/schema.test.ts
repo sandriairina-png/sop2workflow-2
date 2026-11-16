@@ -109,9 +109,100 @@ function inventoryAnalysis(): SopAnalysis {
   };
 }
 
+function aiNativeFields() {
+  return {
+    feasibility: {
+      score: 80,
+      verdict: 'conditional' as const,
+      summary: '适合从人工确认模式开始。',
+      dimensions: [
+        { name: '任务结构化', score: 85, reason: '步骤明确' },
+        { name: '信息数字化', score: 80, reason: '主要输入可获取' },
+        { name: '判断可外化', score: 75, reason: '规则可描述' },
+        { name: '容错空间', score: 70, reason: '发布前可人工确认' },
+        { name: '反馈闭环', score: 90, reason: '可记录人工修订' },
+      ],
+      blockers: [],
+    },
+    nativeBlueprint: {
+      objective: '让 AI 先处理任务，人工负责最终判断。',
+      humanAiBoundary: [
+        {
+          stage: '处理',
+          aiRole: '生成候选结果',
+          humanRole: '确认结果',
+          handoff: '候选结果和依据',
+          acceptance: '负责人确认',
+        },
+      ],
+      skills: [
+        {
+          name: '生成候选结果',
+          trigger: '收到任务',
+          input: '业务上下文',
+          output: '候选结果与依据',
+        },
+      ],
+      dataPlan: [
+        { source: '人工修订', captureAt: '确认后', purpose: '持续评测' },
+      ],
+      memoryPlan: [
+        {
+          layer: 'episodic' as const,
+          readAt: '相似任务开始时',
+          writeAt: '任务验收后',
+          governance: '定期去重和过期',
+        },
+      ],
+      guardrails: [
+        { risk: '错误发布', rule: '不得自动发布', humanCheckpoint: '发布前' },
+      ],
+      implementationPhases: [
+        {
+          phase: '试点',
+          goal: '验证闭环',
+          deliverables: ['可运行原型'],
+          successMetric: '人工采纳率达到 80%',
+        },
+      ],
+    },
+  };
+}
+
 test('accepts a branched inventory analysis', () => {
   const parsed = SopAnalysisSchema.parse(inventoryAnalysis());
   assert.deepEqual(validateSopAnalysisGraph(parsed), parsed);
+});
+
+test('accepts a complete five-dimension AI Native blueprint', () => {
+  const parsed = SopAnalysisSchema.parse({
+    ...inventoryAnalysis(),
+    ...aiNativeFields(),
+  });
+
+  assert.equal(parsed.feasibility?.dimensions.length, 5);
+  assert.equal(parsed.nativeBlueprint?.skills.length, 1);
+});
+
+test('rejects an incomplete AI Native blueprint', () => {
+  const fields = aiNativeFields();
+  assert.throws(() =>
+    SopAnalysisSchema.parse({
+      ...inventoryAnalysis(),
+      ...fields,
+      feasibility: {
+        ...fields.feasibility,
+        dimensions: fields.feasibility.dimensions.slice(0, 4),
+      },
+    })
+  );
+  assert.throws(() =>
+    SopAnalysisSchema.parse({
+      ...inventoryAnalysis(),
+      ...fields,
+      nativeBlueprint: { ...fields.nativeBlueprint, skills: [] },
+    })
+  );
 });
 
 test('rejects duplicate and missing step references', () => {

@@ -1,14 +1,14 @@
 {
   "metadata": {
-    "title": "SOP2Workflow — ERP SOP 转 n8n 工作流",
-    "description": "将 ERP 标准作业流程转换为可审阅、可下载并导入 n8n 的自动化工作流。",
-    "keywords": "ERP SOP, n8n 工作流, 流程自动化, SOP 转工作流, 企业自动化"
+    "title": "NativeOps — AI Native 业务构建器",
+    "description": "把业务需求转化为可行性判断、人机分工、Skill、数据、记忆与落地计划完整咬合的 AI Native 蓝图。",
+    "keywords": "AI Native, AI 业务构建, 人机协作, AI Skill, Agent 设计, 企业 AI"
   },
   "sign": {
     "sign_in_title": "登录",
     "sign_in_description": "登录到您的账户",
-    "modal_title": "继续构建工作流",
-    "modal_description": "登录后保存、审阅并导出你的 n8n 工作流。",
+    "modal_title": "继续构建 AI Native 蓝图",
+    "modal_description": "登录后保存、审阅并导出你的 AI Native 业务蓝图。",
     "sign_up_title": "注册",
     "sign_up_description": "创建一个新账户",
     "email_title": "邮箱",

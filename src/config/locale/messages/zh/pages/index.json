@@ -5,61 +5,61 @@
       "hero": {
         "block": "hero",
         "id": "workspace",
-        "product": "sop2workflow",
-        "title": "把 ERP SOP 变成 n8n 工作流",
-        "description": "粘贴真实业务流程。AI 自动拆解触发条件、操作步骤与判断分支，生成可审阅、可导入 n8n 的工作流 JSON。",
+        "product": "nativeops",
+        "title": "把业务需求，变成 AI Native 工作方式",
+        "description": "描述目标、团队与约束。AI 先判断是否值得做，再设计人机分工、Skill、数据、记忆与落地计划。",
         "buttons": [{ "title": "查看工作方式", "url": "#how-it-works" }],
         "workspace": {
           "language": "zh",
-          "badge": "ERP 工作流智能引擎",
+          "badge": "AI Native 业务构建器",
           "hero_lead": "让",
           "hero_join": "把",
           "hero_target": "变成",
-          "hero_tokens": ["ERP 运营", "业务 SOP", "n8n 工作流"],
+          "hero_tokens": ["业务团队", "真实需求", "AI Native 系统"],
           "primary_cta": "立即体验",
-          "secondary_cta": "生成工作流",
-          "scroll_hint": "向下探索完整流程",
-          "input_label": "业务 SOP",
-          "input_hint": "写清触发条件、执行步骤、判断规则和最终结果。",
-          "placeholder": "例如：每天 9:00 从 ERP 获取待发货订单，检查库存。库存充足则创建出库单并通知仓库；不足则通知采购，并在企业群中预警……",
+          "secondary_cta": "生成蓝图",
+          "scroll_hint": "向下探索完整蓝图",
+          "input_label": "业务需求",
+          "input_hint": "写清要达成什么、现在怎么做、谁参与以及有哪些约束。",
+          "placeholder": "例如：我们是 2 人内容团队，每周要完成 20 篇行业内容。现在选题、资料检索、初稿和复盘都靠人工，希望 AI 承担研究与初稿，但最终观点和发布必须由人确认……",
           "examples_label": "快速示例",
-          "example_labels": ["订单履约", "库存补货", "对账异常"],
+          "example_labels": ["内容引擎", "客服分诊", "销售研究"],
           "example_values": [
-            "每天 9 点从 ERP 拉取待发货订单，检查库存。库存充足则通知仓库拣货；库存不足则通知采购，并记录异常。",
-            "每天汇总低于安全库存的物料，生成补货建议。采购确认后创建采购申请，并把结果同步给仓库。",
-            "财务完成日终对账后，筛选金额不一致的单据。先通知业务复核，超过 2 小时未处理则升级给财务主管。"
+            "我们是 2 人内容团队，每周需要完成 20 篇行业内容。AI 可以负责选题研究、资料整理和初稿，人负责观点判断、事实核验与发布。希望把每次修改沉淀成团队能力。",
+            "我们有 6 人客服团队，每天处理 500 条咨询。希望 AI 完成意图识别、知识检索和回复草稿，高风险投诉与退款必须转人工，并从人工修订中持续学习。",
+            "销售每天要研究新线索、整理公司信息并准备沟通策略。希望 AI 自动完成研究和摘要，销售确认关键判断，系统记住有效话术和失败原因。"
           ],
-          "trigger_label": "触发方式",
-          "trigger_auto": "智能识别",
-          "trigger_auto_hint": "根据 SOP 中的时间、事件和人工操作描述，自动判断手动、定时或 Webhook 触发方式。",
-          "trigger_manual": "手动",
-          "trigger_schedule": "定时",
-          "trigger_webhook": "Webhook",
-          "generate": "生成 n8n 工作流",
-          "generating": "正在分析 SOP",
+          "trigger_label": "构建视角",
+          "trigger_auto": "全面推演",
+          "trigger_auto_hint": "同时评估业务价值、人机分工、Skill、数据、记忆和风险。",
+          "trigger_manual": "全面推演",
+          "trigger_schedule": "团队协作",
+          "trigger_webhook": "知识与决策",
+          "generate": "生成 AI Native 蓝图",
+          "generating": "正在构建蓝图",
           "generating_eta": "预计 30–60 秒完成，请保持页面开启",
           "generating_elapsed": "已用时 {seconds} 秒",
           "generating_statuses": [
-            "正在识别触发方式与参与角色",
-            "正在拆解步骤、条件和异常分支",
-            "正在校验流程连通性与部署清单"
+            "正在判断 AI Native 可行性",
+            "正在设计人机分工、Skill 与记忆",
+            "正在进行风险校验与实施规划"
           ],
-          "privacy": "SOP 仅用于本次模型分析；不会写入业务数据库，生成结果也不包含凭据",
-          "preview": "流程预览",
+          "privacy": "业务描述仅用于本次模型分析；不会写入业务数据库，生成结果也不包含凭据",
+          "preview": "AI Native 蓝图",
           "json": "结构 JSON",
-          "setup": "部署清单",
-          "stage_label": "流程工作台",
-          "stage_title": "从一句业务描述，到完整的工作流骨架",
-          "stage_description": "审阅节点、检查假设、查看 JSON，并把结果带到你的 n8n 环境继续配置。",
-          "empty_title": "等待你的 SOP",
-          "empty_description": "输入流程并点击生成，这里会出现节点链、配置建议与可下载的 n8n JSON。",
-          "nodes": "个节点",
-          "generated": "已生成草稿",
-          "copy": "复制 JSON",
+          "setup": "校验与决策",
+          "stage_label": "AI Native 构建台",
+          "stage_title": "从一个业务目标，到完整的 AI Native 蓝图",
+          "stage_description": "先判断是否值得做，再明确人机边界、Skill、数据、记忆、护栏与落地计划。",
+          "empty_title": "等待你的业务需求",
+          "empty_description": "描述目标、现状与约束，这里会生成可行性判断和一份可以直接讨论、试点与迭代的 AI Native 蓝图。",
+          "nodes": "个业务阶段",
+          "generated": "蓝图已生成",
+          "copy": "复制蓝图",
           "copied": "已复制",
-          "download": "下载 JSON",
-          "configuration_note": "导入 n8n 后，请配置真实的 ERP 接口、凭据和通知渠道。",
-          "checklist": "部署前检查",
+          "download": "导出 Markdown",
+          "configuration_note": "蓝图用于业务设计与试点规划；真正上线前仍需完成数据、权限、安全与责任人确认。",
+          "checklist": "落地检查",
           "assumptions": "识别到的假设",
           "tests": "建议测试",
           "missing_information": "待补充信息",
@@ -68,117 +68,92 @@
           "ai_inferred": "AI 推断",
           "needs_confirmation": "需用户确认",
           "confirmation_title": "完成待补充信息",
-          "confirmation_description": "选择或填写真实业务条件。回答会作为已确认信息，重新生成节点、分支和部署清单。",
-          "custom_answer": "自定义",
-          "custom_answer_placeholder": "用自己的话填写条件",
-          "apply_answers": "应用回答并重新生成",
-          "answer_required": "请至少回答一个问题。",
-          "advanced": "高级",
-          "advanced_description": "需要精细调整时，再展开结构化 JSON 编辑器。",
-          "structured_json": "可编辑的结构化流程 JSON",
-          "review_title": "可修改步骤、负责人、条件和异常处理；修改后必须重新校验。",
-          "validate": "重新校验",
-          "validated": "结构和流程连通性校验通过",
-          "review_required": "改了 JSON 后请点「重新校验」，通过后在右上角勾选「我已核对」即可下载。",
-          "review_confirm": "我已审阅分支、风险与待配置项，同意生成 n8n 文件",
-          "error_empty": "请先输入一段 SOP。",
-          "error_origin": "当前页面地址校验失败，请刷新页面后重试。",
-          "error_busy": "同时生成的人有点多，请等 5 秒后点「重新生成」。",
-          "error_config": "模型服务尚未完成配置，请联系管理员。",
-          "error_timeout": "这份 SOP 步骤较多，这次没有在时限内完成（内容已保留）。请先点「重新生成」；如果还不行，把 SOP 拆成两段分别生成，例如先只粘贴审批部分。",
-          "error_invalid_output": "这次模型返回的结构不完整（内容已保留）。点「重新生成」一般就能恢复；如果连续失败，删掉一些次要描述后再试。",
-          "error_provider": "模型服务暂时没有响应（内容已保留）。请等 10 秒左右再点「重新生成」。",
-          "error_provider_account": "模型服务账户余额不足或密钥失效，重新生成也无法恢复。请到 EvoLink 后台充值或检查 API Key，完成后再点「生成」。在此之前可以先看下方的示例结果。",
-          "retry": "重新生成",
-          "error_too_frequent": "点得太快了，请等 10 秒再点「重新生成」。",
-          "error_daily_limit": "今天的生成次数已用完，明天会自动恢复。",
-          "details_incomplete": "主流程已生成，节点细节（负责人、输入输出、异常处理）这次没补全。",
-          "complete_details": "补全细节",
-          "operation_labels": {
-            "read": "读取",
-            "transform": "处理",
-            "write": "写入",
-            "approve": "审批",
-            "notify": "通知",
-            "wait": "等待",
-            "condition": "判断",
-            "merge": "汇总",
-            "end": "结束"
-          },
-          "branch_labels": {
-            "default": "下一步",
-            "true": "满足",
-            "false": "不满足",
-            "case": "分支",
-            "error": "异常分支"
-          },
-          "risk_levels": {
-            "low": "低风险",
-            "medium": "中风险",
-            "high": "高风险"
-          },
-          "owner": "负责人",
-          "step_label": "步骤",
-          "unknown_step": "未找到的步骤",
-          "draft_errors": {
-            "syntax": "内容格式有误：请检查是否缺少逗号、引号或括号，修改后再点「重新校验」。",
-            "schema": "有必填内容缺失或取值不正确，请对照修改前的内容检查后再校验。",
-            "duplicate": "有两个步骤使用了同一个编号{step}，请改成不同的编号。",
-            "unknown_actor": "步骤{step}的负责人不在角色列表里，请改为已有的角色。",
-            "too_few_branches": "判断步骤{step}至少需要两个分支。",
-            "unknown_target": "步骤{step}指向的下一步不存在，请检查跳转目标。",
-            "unlabelled": "步骤{step}有一条连线缺少说明。",
-            "missing_condition": "判断步骤{step}的分支{branch}缺少判断条件。",
-            "unknown_error_target": "步骤{step}的异常处理指向了不存在的步骤。",
-            "unreachable": "这些步骤从流程起点走不到：{steps}，请为它们补上连线。",
-            "no_end": "流程缺少结束步骤，请至少保留一个没有下一步的步骤。",
-            "secret": "内容里疑似包含密钥或密码，请删除后再校验。",
-            "generic": "修改后的流程没有通过校验，请检查后重试。"
-          },
-          "sample_badge": "示例结果",
-          "sample_title": "这是「订单履约」示例 SOP 生成的工作流",
-          "sample_description": "输入你自己的 SOP，就能得到同样结构的步骤、分支、异常处理、待确认问题和可导入 n8n 的文件。",
-          "sample_try": "用这个示例生成",
+          "confirmation_description": "选择或填写真实业务条件。回答会作为已确认约束，重新生成可行性判断、人机边界和实施计划。",
           "condition_pending": "（待重新生成后生效）",
           "confirmed_conditions": "已确认的条件",
           "remove_condition": "移除",
           "option_conventional": "按行业常规做法补全",
           "option_configure_later": "先保留为待配置项",
-          "error_kind_system": "系统异常",
-          "error_kind_business": "业务异常",
-          "system_error_handler": "系统异常处理",
-          "error_source_ai": "AI 补充",
-          "error_source_text": "SOP 原文",
-          "export_confirm": "我已核对分支和配置项",
+          "custom_answer": "自定义",
+          "custom_answer_placeholder": "用自己的话填写条件",
+          "apply_answers": "应用回答并重新生成",
+          "answer_required": "请至少回答一个问题。",
+          "advanced": "高级",
+          "advanced_description": "需要精细调整时，再展开结构化蓝图 JSON。",
+          "structured_json": "可编辑的结构化蓝图 JSON",
+          "review_title": "可修改人机边界、Skill、记忆和护栏；修改后必须重新校验。",
+          "validate": "重新校验",
+          "validated": "结构和流程连通性校验通过",
+          "review_required": "请先校验 JSON，再进行人工确认。",
+          "review_confirm": "我已审阅可行性、人机边界与风险，同意导出蓝图",
+          "export_confirm": "我已核对蓝图和风险",
           "export_confirm_short": "已核对",
           "export_hints": {
-            "busy": "正在生成，请稍等。",
-            "sample": "这是示例结果。生成你自己的流程后，就能核对并下载。",
-            "invalid": "「高级」里的 JSON 有改动还没校验。请展开「高级」，点「重新校验」。",
-            "confirm": "请先勾选旁边的「我已核对分支和配置项」，再复制或下载。",
-            "ai_errors": "其中 {count} 条异常处理由 AI 补充（虚线框），建议重点看一下。"
+            "busy": "蓝图正在生成，请稍等。",
+            "empty": "请先生成一份 AI Native 蓝图。",
+            "invalid": "「高级」里的 JSON 有尚未校验的改动。请展开「高级」并点「重新校验」。",
+            "confirm": "请先勾选旁边的「我已核对蓝图和风险」，再复制或下载。"
           },
-          "error_generic": "这次没能生成工作流（内容已保留）。请点「重新生成」；如果还不行，刷新页面后再试。",
-          "workspace_title": "流程草稿工作台",
+          "error_empty": "请先描述一段业务需求。",
+          "error_origin": "当前页面地址校验失败，请刷新页面后重试。",
+          "error_busy": "当前生成请求较多，请稍候再试。",
+          "error_too_frequent": "操作得有点快，请等 10 秒后再重新生成。",
+          "error_daily_limit": "今天的生成次数已用完，明天会自动恢复。",
+          "error_config": "模型服务尚未完成配置，请联系管理员。",
+          "error_timeout": "这份业务需求较复杂，本次推演未在规定时间内完成。您的内容已保留，可以直接重新生成。",
+          "error_invalid_output": "本次生成的蓝图结构不完整，您的内容已保留，请重新生成。",
+          "error_provider": "模型服务刚刚开了个小差，您的内容没有丢失。请稍后重新生成。",
+          "error_provider_account": "模型服务账户余额不足或密钥失效，请到 EvoLink 后台充值或检查 API Key 后重试。",
+          "draft_errors": {
+            "syntax": "内容格式有误：请检查是否缺少逗号、引号或括号，修改后再点「重新校验」。",
+            "schema": "有必填内容缺失或取值不正确，请对照修改前的内容检查后再校验。",
+            "duplicate": "有两个阶段使用了同一个编号{step}，请改成不同编号。",
+            "unknown_actor": "阶段{step}的负责人不在人机角色列表里。",
+            "too_few_branches": "判断阶段{step}至少需要两个分支。",
+            "unknown_target": "阶段{step}指向的下一阶段不存在。",
+            "unlabelled": "阶段{step}有一条连接缺少说明。",
+            "missing_condition": "判断阶段{step}的分支{branch}缺少条件。",
+            "unknown_error_target": "阶段{step}的异常处理指向了不存在的阶段。",
+            "unreachable": "这些阶段从起点无法到达：{steps}。",
+            "no_end": "蓝图缺少结束阶段。",
+            "secret": "内容里疑似包含密钥或密码，请删除后再校验。",
+            "generic": "修改后的蓝图没有通过校验，请检查后重试。"
+          },
+          "retry": "重新生成",
+          "error_generic": "暂时无法生成蓝图，请稍后重试。",
+          "workspace_title": "AI Native 蓝图工作台",
           "local_session": "本地会话",
           "input_tag": "输入",
           "natural_language": "自然语言",
-          "awaiting": "等待源流程文档",
+          "awaiting": "等待业务需求",
+          "feasibility": "可行性判定",
+          "blueprint": "完整蓝图",
+          "feasibility_score": "AI Native 可行性",
+          "verdict_ready": "适合立即试点",
+          "verdict_conditional": "补齐条件后试点",
+          "verdict_not_ready": "暂不适合",
+          "human_ai_boundary": "人机分工",
+          "skill_library": "Skill 清单",
+          "data_plan": "数据采集计划",
+          "memory_plan": "记忆设计",
+          "guardrails": "质量与责任护栏",
+          "implementation_plan": "分阶段落地",
+          "export_blueprint": "导出蓝图",
           "benefits": [
             {
               "id": "complete-delivery",
-              "title": "从 SOP 到交付包",
-              "description": "一次获得工作流 JSON、配置清单与测试建议。"
+              "title": "先判定，再设计",
+              "description": "先确认值不值得做，避免把 AI 用在错误的位置。"
             },
             {
               "id": "local-processing",
               "title": "临时分析，不留业务副本",
-              "description": "SOP 仅用于本次模型分析，不写入业务数据库。"
+              "description": "业务描述仅用于本次模型分析，不写入业务数据库。"
             },
             {
               "id": "credential-safety",
-              "title": "凭据留在 n8n",
-              "description": "密钥不会进入生成结果，只在部署时安全绑定。"
+              "title": "人在关键环",
+              "description": "需要担责和不可逆的决策始终保留人工检查点。"
             }
           ]
         }
@@ -187,31 +162,31 @@
         "block": "features-step",
         "id": "how-it-works",
         "label": "工作方式",
-        "title": "从业务语言，到可审阅的自动化草稿",
-        "description": "保留业务人员熟悉的表达，让流程设计、技术配置和上线验收在同一份结果中对齐。",
+        "title": "从业务语言，到可落地的 AI Native 工作方式",
+        "description": "先判定，再设计，再校验；让 AI 能力、人工责任、数据与组织学习形成闭环。",
         "items": [
           {
-            "title": "描述真实 SOP",
-            "description": "直接粘贴现有制度、操作手册或一线人员的流程描述。",
-            "tip": "自然语言输入",
+            "title": "描述业务目标",
+            "description": "说清目标、现状、团队、信息来源与不能突破的约束。",
+            "tip": "结构化需求",
             "icon": "FileText"
           },
           {
-            "title": "识别步骤与判断",
-            "description": "解析触发器、数据动作、条件分支、审批与通知。",
-            "tip": "结构化业务逻辑",
+            "title": "可行性判定",
+            "description": "从任务、信息、判断、容错与反馈五个维度判断是否值得做。",
+            "tip": "避免无效投入",
             "icon": "ScanSearch"
           },
           {
-            "title": "审阅部署清单",
-            "description": "同步给出假设、待配置项和关键测试场景。",
-            "tip": "部署前审阅",
+            "title": "生成完整蓝图",
+            "description": "设计人机分工、Skill、数据采集、记忆、护栏与实施阶段。",
+            "tip": "六个咬合模块",
             "icon": "ListChecks"
           },
           {
-            "title": "导入 n8n",
-            "description": "下载标准 JSON，在 n8n 中补齐连接信息后继续编排。",
-            "tip": "n8n 标准 JSON",
+            "title": "对抗校验与拍板",
+            "description": "用失败场景攻击方案，遗留问题交给人确认后导出蓝图。",
+            "tip": "人在关键环",
             "icon": "Workflow"
           }
         ]
@@ -219,37 +194,37 @@
       "features": {
         "id": "features",
         "label": "产品能力",
-        "title": "为 ERP 流程真正落地而设计",
-        "description": "不只画一张流程图，而是交付一份可以继续配置、验证和运行的自动化骨架。",
+        "title": "为 AI Native 真正落地而设计",
+        "description": "不只给出提示词或 Demo，而是交付一份能试点、能验收、能持续变强的业务蓝图。",
         "items": [
           {
-            "title": "SOP 语义拆解",
-            "description": "内嵌面向 ERP 场景的分析提示词，提取动作、规则和异常路径。",
+            "title": "判定先行",
+            "description": "先回答值不值得做；不适合就指出阻塞项和补齐路径。",
             "icon": "BrainCircuit"
           },
           {
-            "title": "n8n 标准 JSON",
-            "description": "生成符合 n8n 结构的节点与连接，可下载、复制和继续编辑。",
+            "title": "人机责任边界",
+            "description": "明确 AI 做什么、人做什么、交接物与验收标准是什么。",
             "icon": "Braces"
           },
           {
-            "title": "凭据安全边界",
-            "description": "不会在工作流中臆造密钥，敏感连接统一留待部署时配置。",
+            "title": "Skill 与触发机制",
+            "description": "把一次性提示沉淀成可复用能力，定义输入、输出与调用时机。",
             "icon": "ShieldCheck"
           },
           {
-            "title": "多种触发模式",
-            "description": "支持手动、定时与 Webhook 三类常用流程入口。",
+            "title": "数据与记忆设计",
+            "description": "设计工作中收什么数据、何时读写记忆以及如何治理过期与污染。",
             "icon": "Webhook"
           },
           {
-            "title": "部署检查清单",
-            "description": "把接口、字段映射、重试与测试要求一并交付。",
+            "title": "对抗式质检",
+            "description": "针对幻觉、冷启动、数据不可得和责任错位生成护栏与测试。",
             "icon": "ListChecks"
           },
           {
-            "title": "中英文工作区",
-            "description": "产品界面与核心说明完整支持中英文切换。",
+            "title": "可执行落地计划",
+            "description": "把蓝图拆成试点、评测、扩展阶段和明确成功指标。",
             "icon": "Languages"
           }
         ]
@@ -257,37 +232,37 @@
       "faq": {
         "id": "faq",
         "label": "常见问题",
-        "title": "上线前，你可能想确认这些",
-        "description": "关于生成结果、数据安全和 n8n 部署的简明说明。",
+        "title": "开始构建前，你可能想确认这些",
+        "description": "关于 AI Native 蓝图、人工责任和数据安全的简明说明。",
         "items": [
           {
-            "title": "生成的 JSON 可以直接导入 n8n 吗？",
-            "description": "可以。系统会生成可导入的节点与连接骨架；实际 ERP 地址、账号凭据和字段映射仍需在 n8n 中按企业环境配置。"
+            "title": "AI Native 和使用 AI 工具有何不同？",
+            "description": "使用工具解决一次任务；AI Native 会重新设计流程、人机边界、Skill、数据与记忆，让系统随反馈持续变强。"
           },
           {
-            "title": "必须懂 n8n 才能使用吗？",
-            "description": "不需要先会搭流程。业务人员可以先描述 SOP 并审阅结果，技术人员再完成连接配置与上线验证。"
+            "title": "判定暂不适合意味着什么？",
+            "description": "不是永久否定，而是当前的信息、容错或反馈条件不足。蓝图会列出阻塞项和补齐路径。"
           },
           {
-            "title": "系统会保存 ERP 密钥吗？",
-            "description": "当前基础版在浏览器本地生成草稿，也不会要求你把账号密钥写进 SOP。正式连接应使用 n8n 的凭据管理。"
+            "title": "需要懂技术才能使用吗？",
+            "description": "不需要。业务负责人描述目标并拍板关键边界，技术团队可在实施阶段接入真实数据与工具。"
           },
           {
-            "title": "适合哪些 ERP 场景？",
-            "description": "订单履约、库存补货、采购审批、财务对账、主数据同步、异常通知等规则明确的流程都适合先生成自动化骨架。"
+            "title": "蓝图可以直接上线吗？",
+            "description": "蓝图是可开工的设计输入，不是未经验证的生产系统。建议先用真实样本完成小范围试点和人工验收。"
           },
           {
-            "title": "AI 分析能力如何工作？",
-            "description": "产品已内嵌 ERP SOP 分析与 n8n 编排提示词。当前预览版提供确定性的本地生成，后续可接入模型服务增强复杂语义与分支识别。"
+            "title": "业务信息会如何处理？",
+            "description": "业务描述用于本次模型推演，不要求提交密码或密钥；敏感连接信息应在真正实施时通过安全凭据系统配置。"
           }
         ]
       },
       "cta": {
         "id": "cta",
-        "title": "把下一份 SOP，变成可以运行的流程",
-        "description": "从一段真实业务描述开始，几分钟内得到可审阅、可交接、可导入 n8n 的自动化草稿。",
+        "title": "把下一个业务目标，变成 AI Native 蓝图",
+        "description": "从一段真实业务描述开始，得到可行性判断、人机分工、Skill、记忆、护栏与试点计划。",
         "buttons": [
-          { "title": "开始生成", "url": "#workspace", "icon": "ArrowUpRight" }
+          { "title": "开始构建", "url": "#workspace", "icon": "ArrowUpRight" }
         ]
       }
     }

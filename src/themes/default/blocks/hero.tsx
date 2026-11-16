@@ -18,7 +18,7 @@ export function Hero({
   section: Section;
   className?: string;
 }) {
-  if (section.product === 'sop2workflow') {
+  if (section.product === 'nativeops' || section.product === 'sop2workflow') {
     return <SopWorkflowStudio section={section} className={className} />;
   }
 

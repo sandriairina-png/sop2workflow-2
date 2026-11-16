@@ -28,7 +28,7 @@ export const EVOLINK_DEFAULT_MODEL = 'gemini-3.8-flash';
 export const EVOLINK_DEFAULT_MAX_TOKENS = 6000;
 export const EVOLINK_SKELETON_MAX_TOKENS = 4000;
 export const EVOLINK_STEP_DETAIL_MAX_TOKENS = 3500;
-export const EVOLINK_PLAN_MAX_TOKENS = 2500;
+export const EVOLINK_PLAN_MAX_TOKENS = 6000;
 export const EVOLINK_DEFAULT_TIMEOUT_MS = 65_000;
 const SKELETON_TIMEOUT_MS = 30_000;
 const DETAIL_TIMEOUT_MS = 50_000;
@@ -530,9 +530,8 @@ export async function analyzeSopWithEvolink(
 
   skeleton = resolveTrigger(skeleton, input);
 
-  // Stage 2: node details and the rollout plan are independent, so they run in
-  // parallel and the skeleton is never rewritten. A failed part degrades the
-  // result instead of failing the request.
+  // Stage 2: execution details and the AI Native blueprint are independent,
+  // so they run in parallel and the skeleton is never rewritten.
   const partLimits = (maxTokens: number) => () => ({
     maxTokens: Math.min(maxTokens, config.maxTokens),
     timeoutMs: remainingTimeout(deadline, DETAIL_TIMEOUT_MS),
@@ -595,14 +594,19 @@ export async function analyzeSopWithEvolink(
     });
   }
 
+  // The blueprint is the product result, not optional rollout decoration.
+  // Step details may degrade, but a missing blueprint must be repaired or fail.
+  if (plan.status === 'rejected') {
+    throw plan.reason;
+  }
+
   const analysis = mergeAnalysis(
     skeleton,
     details.status === 'fulfilled' ? details.value : undefined,
-    plan.status === 'fulfilled' ? plan.value : undefined,
+    plan.value,
     input.locale
   );
-  const incomplete =
-    details.status === 'rejected' || plan.status === 'rejected';
+  const incomplete = details.status === 'rejected';
   return {
     analysis,
     meta: {
@@ -684,6 +688,8 @@ type RolloutPlan = Pick<
   | 'deploymentChecklist'
   | 'risks'
   | 'tests'
+  | 'feasibility'
+  | 'nativeBlueprint'
 >;
 
 // Keep every entry that validates instead of rejecting the whole part.
@@ -730,6 +736,22 @@ const PLAN_LIMIT = 5;
 function readPlan(raw: Record<string, unknown>): RolloutPlan {
   const text = z.string().trim().min(1);
   const shape = SopAnalysisSchema.shape;
+  const aiNative = z
+    .object({
+      feasibility: shape.feasibility.unwrap(),
+      nativeBlueprint: shape.nativeBlueprint.unwrap(),
+    })
+    .safeParse(raw);
+  if (!aiNative.success) {
+    const issues = aiNative.error.issues
+      .slice(0, 8)
+      .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+      .join('; ');
+    throw new EvolinkError(
+      'invalid_output',
+      `AI Native blueprint is incomplete: ${issues}`
+    );
+  }
   return {
     assumptions: validItems(raw.assumptions, text).slice(0, PLAN_LIMIT),
     missingInformation: validItems(raw.missingInformation, text).slice(
@@ -768,6 +790,8 @@ function readPlan(raw: Record<string, unknown>): RolloutPlan {
         : risk
     ).slice(0, PLAN_LIMIT),
     tests: validItems(raw.tests, shape.tests.element).slice(0, PLAN_LIMIT),
+    feasibility: aiNative.data.feasibility,
+    nativeBlueprint: aiNative.data.nativeBlueprint,
   };
 }
 
@@ -830,6 +854,8 @@ function mergeAnalysis(
         ],
     risks: plan?.risks || [],
     tests: plan?.tests || [],
+    feasibility: plan?.feasibility,
+    nativeBlueprint: plan?.nativeBlueprint,
   });
 }
 

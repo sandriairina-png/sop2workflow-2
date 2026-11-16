@@ -18,8 +18,8 @@ test('Chinese and English homepages expose the same focused sections', () => {
     'cta',
   ]);
   assert.deepEqual(en.show_sections, zh.show_sections);
-  assert.equal(zh.sections.hero.product, 'sop2workflow');
-  assert.equal(en.sections.hero.product, 'sop2workflow');
+  assert.equal(zh.sections.hero.product, 'nativeops');
+  assert.equal(en.sections.hero.product, 'nativeops');
   assert.equal(zh.sections.hero.block, 'hero');
   assert.equal(en.sections.hero.block, 'hero');
 });
@@ -74,31 +74,34 @@ test('header anchors use smooth in-page navigation', () => {
   );
 });
 
-test('metadata identifies SOP2Workflow in both locales', () => {
+test('metadata identifies NativeOps in both locales', () => {
   for (const locale of ['zh', 'en']) {
     const common = json(`./messages/${locale}/common.json`);
-    assert.match(common.metadata.title, /SOP2Workflow/);
+    assert.match(common.metadata.title, /NativeOps/);
     assert.doesNotMatch(common.metadata.description, /ShipAny/i);
   }
 });
 
-test('hero component delegates the product UI to the workflow studio', () => {
+test('hero component delegates the AI Native product UI to the studio', () => {
   const source = readFileSync(
     new URL('../../themes/default/blocks/hero.tsx', import.meta.url),
     'utf8'
   );
   assert.match(source, /SopWorkflowStudio/);
-  assert.match(source, /section\.product === 'sop2workflow'/);
+  assert.match(source, /section\.product === 'nativeops'/);
 });
 
 test('editorial hero exposes one localized start action', () => {
   const zh = json('./messages/zh/pages/index.json').page.sections.hero;
   const en = json('./messages/en/pages/index.json').page.sections.hero;
 
-  assert.equal(zh.title, '把 ERP SOP 变成 n8n 工作流');
-  assert.equal(en.title, 'Turn ERP SOPs into n8n workflows');
-  assert.match(zh.description, /触发条件、操作步骤与判断分支/);
-  assert.match(en.description, /triggers, actions, and decision branches/);
+  assert.equal(zh.title, '把业务需求，变成 AI Native 工作方式');
+  assert.equal(
+    en.title,
+    'Turn a business goal into an AI-native operating model'
+  );
+  assert.match(zh.description, /人机分工.*Skill.*数据.*记忆/);
+  assert.match(en.description, /human–AI roles.*Skills.*data.*memory/);
   assert.equal(zh.workspace.primary_cta, '立即体验');
   assert.equal(en.workspace.primary_cta, 'Try it now');
 
@@ -398,7 +401,7 @@ test('all landing sections use the React Bits scroll entrance', () => {
   assert.match(animatedContent, /ctx\.revert\(\)/);
 });
 
-test('hero integrates the React Bits Aurora background without changing workflow controls', () => {
+test('hero integrates the React Bits Aurora background without changing builder controls', () => {
   const studio = readFileSync(
     new URL(
       '../../themes/default/blocks/sop-workflow-studio.tsx',
@@ -437,7 +440,8 @@ test('hero integrates the React Bits Aurora background without changing workflow
     /\.linearity-aurora-stage\s*\{[\s\S]*?width:\s*100vw;[\s\S]*?height:\s*720px;/
   );
   assert.match(studio, /fetch\('\/api\/sop-workflow\/analyze'/);
-  assert.match(studio, /compileN8nWorkflow/);
+  assert.match(studio, /buildBlueprintMarkdown/);
+  assert.match(studio, /nativeBlueprint/);
 });
 
 test('SOP input panel uses the React Bits StarBorder effect', () => {
@@ -471,7 +475,7 @@ test('SOP input panel uses the React Bits StarBorder effect', () => {
   );
 });
 
-test('workflow preview renders explicit branch lanes instead of label-only badges', () => {
+test('result preview renders the complete AI Native blueprint', () => {
   const studio = readFileSync(
     new URL(
       '../../themes/default/blocks/sop-workflow-studio.tsx',
@@ -479,10 +483,14 @@ test('workflow preview renders explicit branch lanes instead of label-only badge
     ),
     'utf8'
   );
-  assert.match(studio, /linearity-branch-lanes/);
-  assert.match(studio, /linearity-branch-lane/);
-  assert.match(studio, /edge\.branch/);
-  assert.match(studio, /edge\.targetStepId/);
+  assert.match(studio, /validatedAnalysis\?\.feasibility/);
+  assert.match(studio, /blueprintCards/);
+  assert.match(studio, /humanAiBoundary/);
+  assert.match(studio, /skills/);
+  assert.match(studio, /dataPlan/);
+  assert.match(studio, /memoryPlan/);
+  assert.match(studio, /guardrails/);
+  assert.match(studio, /implementationPhases/);
 });
 
 test('SOP input panel stays transparent behind the animated border', () => {

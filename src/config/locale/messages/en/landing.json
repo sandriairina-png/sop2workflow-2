@@ -2,10 +2,10 @@
   "header": {
     "id": "header",
     "brand": {
-      "title": "SOP2Workflow",
+      "title": "NativeOps",
       "logo": {
         "src": "/logo.svg",
-        "alt": "SOP2Workflow",
+        "alt": "NativeOps",
         "width": 40,
         "height": 40
       },
@@ -32,11 +32,11 @@
   "footer": {
     "id": "footer",
     "brand": {
-      "title": "SOP2Workflow",
-      "description": "Turn ERP operating procedures into reviewable automation workflows ready for n8n.",
+      "title": "NativeOps",
+      "description": "Turn business needs into AI-native operating models that teams can pilot, validate, and continuously improve.",
       "logo": {
         "src": "/logo.svg",
-        "alt": "SOP2Workflow",
+        "alt": "NativeOps",
         "width": 40,
         "height": 40
       },
@@ -61,9 +61,9 @@
           "children": [
             { "title": "FAQ", "url": "/#faq", "target": "_self" },
             {
-              "title": "n8n documentation",
-              "url": "https://docs.n8n.io/",
-              "target": "_blank"
+              "title": "AI-native blueprint",
+              "url": "/#features",
+              "target": "_self"
             }
           ]
         }

@@ -4,6 +4,7 @@ import test from 'node:test';
 import { SopAnalysis } from '@/shared/lib/sop-workflow';
 
 import {
+  buildBlueprintMarkdown,
   buildClarificationAnswers,
   buildWorkflowGraphRows,
   describeDraftError,
@@ -13,6 +14,64 @@ import {
   resolveWorkflowError,
   validateAnalysisDraft,
 } from './sop-workflow-studio-model';
+
+test('exports localized AI Native blueprint Markdown', () => {
+  const blueprint = {
+    ...analysis,
+    feasibility: {
+      score: 80,
+      verdict: 'conditional' as const,
+      summary: '适合人工确认模式',
+      dimensions: [
+        { name: '任务结构化', score: 80, reason: '步骤明确' },
+        { name: '信息数字化', score: 80, reason: '输入可用' },
+        { name: '判断可外化', score: 80, reason: '规则清楚' },
+        { name: '容错空间', score: 80, reason: '可人工确认' },
+        { name: '反馈闭环', score: 80, reason: '可收集修订' },
+      ],
+      blockers: [],
+    },
+    nativeBlueprint: {
+      objective: '提升支持效率',
+      humanAiBoundary: [
+        {
+          stage: '回复',
+          aiRole: '起草',
+          humanRole: '确认',
+          handoff: '回复草稿',
+          acceptance: '事实准确',
+        },
+      ],
+      skills: [
+        { name: '回复', trigger: '新咨询', input: '问题', output: '草稿' },
+      ],
+      dataPlan: [{ source: '咨询', captureAt: '开始', purpose: '生成回复' }],
+      memoryPlan: [
+        {
+          layer: 'episodic' as const,
+          readAt: '起草时',
+          writeAt: '确认后',
+          governance: '定期清理',
+        },
+      ],
+      guardrails: [
+        { risk: '误答', rule: '高风险转人工', humanCheckpoint: '发送前' },
+      ],
+      implementationPhases: [
+        {
+          phase: '试点',
+          goal: '验证质量',
+          deliverables: ['原型'],
+          successMetric: '采纳率 80%',
+        },
+      ],
+    },
+  };
+
+  assert.match(buildBlueprintMarkdown(blueprint, 'zh'), /## 人机分工/);
+  assert.match(buildBlueprintMarkdown(blueprint, 'en'), /## Human–AI roles/);
+  assert.doesNotMatch(buildBlueprintMarkdown(blueprint, 'en'), /## 人机分工/);
+});
 
 const analysis: SopAnalysis = {
   schemaVersion: '1.0',

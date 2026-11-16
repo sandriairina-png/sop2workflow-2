@@ -230,6 +230,87 @@ export const SopAnalysisSchema = z.object({
       expected: z.string().min(1),
     })
   ),
+  feasibility: z
+    .object({
+      score: z.number().min(0).max(100),
+      verdict: z.enum(['ready', 'conditional', 'not_ready']),
+      summary: z.string().min(1),
+      dimensions: z
+        .array(
+          z.object({
+            name: z.string().min(1),
+            score: z.number().min(0).max(100),
+            reason: z.string().min(1),
+          })
+        )
+        .length(5),
+      blockers: z.array(z.string()),
+    })
+    .optional(),
+  nativeBlueprint: z
+    .object({
+      objective: z.string().min(1),
+      humanAiBoundary: z
+        .array(
+          z.object({
+            stage: z.string().min(1),
+            aiRole: z.string().min(1),
+            humanRole: z.string().min(1),
+            handoff: z.string().min(1),
+            acceptance: z.string().min(1),
+          })
+        )
+        .min(1),
+      skills: z
+        .array(
+          z.object({
+            name: z.string().min(1),
+            trigger: z.string().min(1),
+            input: z.string().min(1),
+            output: z.string().min(1),
+          })
+        )
+        .min(1),
+      dataPlan: z
+        .array(
+          z.object({
+            source: z.string().min(1),
+            captureAt: z.string().min(1),
+            purpose: z.string().min(1),
+          })
+        )
+        .min(1),
+      memoryPlan: z
+        .array(
+          z.object({
+            layer: z.enum(['working', 'episodic', 'semantic']),
+            readAt: z.string().min(1),
+            writeAt: z.string().min(1),
+            governance: z.string().min(1),
+          })
+        )
+        .min(1),
+      guardrails: z
+        .array(
+          z.object({
+            risk: z.string().min(1),
+            rule: z.string().min(1),
+            humanCheckpoint: z.string().min(1),
+          })
+        )
+        .min(1),
+      implementationPhases: z
+        .array(
+          z.object({
+            phase: z.string().min(1),
+            goal: z.string().min(1),
+            deliverables: z.array(z.string().min(1)).min(1),
+            successMetric: z.string().min(1),
+          })
+        )
+        .min(1),
+    })
+    .optional(),
 });
 
 export type SopAnalysis = z.infer<typeof SopAnalysisSchema>;

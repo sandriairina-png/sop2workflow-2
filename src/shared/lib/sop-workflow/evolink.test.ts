@@ -108,6 +108,61 @@ const validPlan = {
     },
   ],
   tests: [{ name: '边界值', input: '5000', expected: '进入总监审批' }],
+  feasibility: {
+    score: 82,
+    verdict: 'conditional',
+    summary: '适合从人工确认模式开始。',
+    dimensions: [
+      { name: '任务结构化', score: 90, reason: '步骤明确' },
+      { name: '信息数字化', score: 80, reason: '输入可获取' },
+      { name: '判断可外化', score: 78, reason: '规则可说明' },
+      { name: '容错空间', score: 72, reason: '发布前可人工确认' },
+      { name: '反馈闭环', score: 90, reason: '可记录人工修订' },
+    ],
+    blockers: [],
+  },
+  nativeBlueprint: {
+    objective: '让 AI 处理初步任务，人工负责关键判断。',
+    humanAiBoundary: [
+      {
+        stage: '执行',
+        aiRole: '生成候选',
+        humanRole: '确认结果',
+        handoff: '候选结果与依据',
+        acceptance: '负责人确认',
+      },
+    ],
+    skills: [
+      {
+        name: '生成候选结果',
+        trigger: '收到任务',
+        input: '业务上下文',
+        output: '候选结果与依据',
+      },
+    ],
+    dataPlan: [
+      { source: '人工修订', captureAt: '确认后', purpose: '持续评测' },
+    ],
+    memoryPlan: [
+      {
+        layer: 'episodic',
+        readAt: '相似任务开始时',
+        writeAt: '任务验收后',
+        governance: '定期去重和过期',
+      },
+    ],
+    guardrails: [
+      { risk: '错误发布', rule: '不得自动发布', humanCheckpoint: '发布前' },
+    ],
+    implementationPhases: [
+      {
+        phase: '试点',
+        goal: '验证闭环',
+        deliverables: ['可运行原型'],
+        successMetric: '人工采纳率达到 80%',
+      },
+    ],
+  },
 };
 
 function response(content: string, finishReason = 'stop') {
@@ -141,9 +196,9 @@ function provider(
     const body = JSON.parse(String(init?.body)) as Body;
     const task = JSON.parse(body.messages[1].content).task;
     const stage =
-      task === 'outline_erp_sop'
+      task === 'outline_ai_native_business'
         ? 'skeleton'
-        : task === 'detail_erp_sop_steps'
+        : task === 'detail_ai_native_stages'
           ? 'steps'
           : 'plan';
     bodies.push({ stage, body, url: String(url) });
@@ -230,6 +285,8 @@ test('merges the skeleton with step details and the rollout plan', async () => {
   assert.equal(done.source, 'ai_inferred');
   assert.equal(result.analysis.confirmationQuestions[0].id, 'threshold');
   assert.deepEqual(result.analysis.deploymentChecklist, ['配置 ERP 凭证']);
+  assert.equal(result.analysis.feasibility?.score, 82);
+  assert.equal(result.analysis.nativeBlueprint?.skills.length, 1);
 });
 
 test('extracts JSON from fences and surrounding commentary', async () => {
@@ -428,6 +485,7 @@ test('keeps valid plan items and repairs question options', async () => {
     plan: () =>
       response(
         JSON.stringify({
+          ...validPlan,
           missingInformation: ['通知渠道', ''],
           confirmationQuestions: [
             {
@@ -497,25 +555,18 @@ test('still returns questions when only step details fail', async () => {
   assert.equal(result.analysis.missingInformation.length, 2);
 });
 
-test('returns the validated outline when both parts fail', async () => {
+test('fails when the AI Native blueprint cannot be produced', async () => {
   const mock = provider({
     steps: () => new Response('busy', { status: 503 }),
     plan: () => new Response('busy', { status: 503 }),
   });
-  const result = await analyzeSopWithEvolink(input, {
-    apiKey: 'test-provider-key',
-    fetch: mock.fetch,
-  });
-  assert.equal(result.meta.detailsIncomplete, true);
-  assert.deepEqual(
-    result.analysis.steps.map((step) => [step.id, step.source]),
-    [
-      ['submit', 'source_text'],
-      ['review', 'ai_inferred'],
-      ['done', 'ai_inferred'],
-    ]
+  await assert.rejects(
+    analyzeSopWithEvolink(input, {
+      apiKey: 'test-provider-key',
+      fetch: mock.fetch,
+    }),
+    /status 503/
   );
-  assert.equal(result.analysis.confirmationQuestions.length, 0);
 });
 
 test('aborts provider work after the configured timeout', async () => {

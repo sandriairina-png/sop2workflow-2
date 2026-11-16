@@ -5,184 +5,159 @@
       "hero": {
         "block": "hero",
         "id": "workspace",
-        "product": "sop2workflow",
-        "title": "Turn ERP SOPs into n8n workflows",
-        "description": "Paste a real business process. AI extracts triggers, actions, and decision branches, then produces reviewable JSON ready for n8n.",
+        "product": "nativeops",
+        "title": "Turn a business goal into an AI-native operating model",
+        "description": "Describe the outcome, team, and constraints. AI judges feasibility first, then designs human–AI roles, Skills, data, memory, guardrails, and a rollout plan.",
         "buttons": [{ "title": "See how it works", "url": "#how-it-works" }],
         "workspace": {
           "language": "en",
-          "badge": "ERP workflow intelligence",
+          "badge": "AI-native business builder",
           "hero_lead": "Let",
           "hero_join": "turn",
           "hero_target": "into",
-          "hero_tokens": ["ERP operations", "business SOPs", "n8n workflows"],
+          "hero_tokens": ["business teams", "real needs", "AI-native systems"],
           "primary_cta": "Try it now",
-          "secondary_cta": "Generate workflow",
-          "scroll_hint": "Scroll to explore the full flow",
-          "input_label": "Business SOP",
-          "input_hint": "Include the trigger, operating steps, business rules, and expected outcome.",
-          "placeholder": "Example: Every day at 9:00, fetch open shipments from the ERP and check inventory. If stock is available, create a delivery order and notify the warehouse; otherwise alert procurement…",
+          "secondary_cta": "Generate blueprint",
+          "scroll_hint": "Scroll to explore the full blueprint",
+          "input_label": "Business need",
+          "input_hint": "Describe the outcome, current way of working, team, information sources, and constraints.",
+          "placeholder": "Example: We are a two-person content team producing 20 industry articles each week. AI can research and draft, but people must own the point of view, fact-checking, and publishing…",
           "examples_label": "Quick starts",
           "example_labels": [
-            "Order fulfillment",
-            "Inventory replenishment",
-            "Reconciliation exception"
+            "Content engine",
+            "Support triage",
+            "Sales research"
           ],
           "example_values": [
-            "Every day at 9:00, fetch open shipments from the ERP and check inventory. If stock is available, notify the warehouse; otherwise alert procurement and log an exception.",
-            "Every day, collect items below safety stock and prepare replenishment suggestions. After buyer confirmation, create purchase requests and update the warehouse.",
-            "After daily reconciliation, find documents with mismatched amounts. Notify operations for review, then escalate to the finance lead if unresolved after two hours."
+            "We are a two-person content team producing 20 industry articles each week. AI should research and draft; people own the point of view, fact-checking, and publishing. Every edit should improve the system.",
+            "Our six-person support team handles 500 conversations per day. AI should classify intent, retrieve knowledge, and draft responses; complaints and refunds require human review and corrections become learning data.",
+            "Sales reps research new accounts and prepare outreach every day. AI should gather and summarize evidence, reps confirm key judgments, and the system should remember winning messages and failure reasons."
           ],
-          "trigger_label": "Trigger",
-          "trigger_auto": "Smart detect",
-          "trigger_auto_hint": "Infer manual, scheduled, or webhook triggering from the time, event, and human-action cues in your SOP.",
-          "trigger_manual": "Manual",
-          "trigger_schedule": "Schedule",
-          "trigger_webhook": "Webhook",
-          "generate": "Generate n8n workflow",
-          "generating": "Analyzing SOP",
+          "trigger_label": "Build lens",
+          "trigger_auto": "Full blueprint",
+          "trigger_auto_hint": "Evaluate value, human–AI roles, Skills, data, memory, guardrails, and rollout together.",
+          "trigger_manual": "Full blueprint",
+          "trigger_schedule": "Team collaboration",
+          "trigger_webhook": "Knowledge and judgment",
+          "generate": "Generate AI-native blueprint",
+          "generating": "Building your blueprint",
           "generating_eta": "Usually ready in 30–60 seconds. Keep this page open.",
           "generating_elapsed": "{seconds}s elapsed",
           "generating_statuses": [
-            "Detecting triggers and process owners",
-            "Mapping steps, conditions, and exception branches",
-            "Validating flow connectivity and deployment checks"
+            "Assessing AI-native feasibility",
+            "Designing roles, Skills, data, and memory",
+            "Stress-testing risks and planning the rollout"
           ],
-          "privacy": "SOP text is used only for this model analysis, is not written to the business database, and credentials never enter the result",
-          "preview": "Flow preview",
+          "privacy": "Your business description is used only for this model analysis, is not written to the business database, and credentials never enter the result",
+          "preview": "AI-native blueprint",
           "json": "Structured JSON",
-          "setup": "Setup checklist",
-          "stage_label": "Workflow studio",
-          "stage_title": "From one process description to a complete workflow skeleton",
-          "stage_description": "Review nodes, inspect assumptions, open the JSON, and continue configuring it in your n8n environment.",
-          "empty_title": "Your workflow starts here",
-          "empty_description": "Add an SOP and generate to see the node chain, configuration notes, and downloadable n8n JSON.",
+          "setup": "Validation and decisions",
+          "stage_label": "AI-native builder",
+          "stage_title": "From one business goal to a complete AI-native blueprint",
+          "stage_description": "Judge feasibility first, then define human–AI boundaries, Skills, data, memory, guardrails, and a rollout plan.",
+          "empty_title": "Your business blueprint starts here",
+          "empty_description": "Describe the goal, current state, and constraints to get a feasibility decision and an actionable AI-native operating model.",
           "nodes": "nodes",
-          "generated": "Draft generated",
-          "copy": "Copy JSON",
+          "generated": "Blueprint generated",
+          "copy": "Copy blueprint",
           "copied": "Copied",
-          "download": "Download JSON",
-          "configuration_note": "After importing to n8n, configure your real ERP endpoints, credentials, and notification channels.",
-          "checklist": "Before deployment",
+          "download": "Export Markdown",
+          "configuration_note": "Use this blueprint to plan a pilot. Confirm real data, permissions, security, and accountable owners before production use.",
+          "checklist": "Rollout checklist",
           "assumptions": "Detected assumptions",
           "tests": "Suggested tests",
           "missing_information": "Missing information",
           "risks": "Risks and mitigations",
-          "source_text": "Explicit in SOP",
+          "source_text": "Explicit in requirement",
           "ai_inferred": "AI inferred",
           "needs_confirmation": "Needs confirmation",
           "confirmation_title": "Complete missing details",
-          "confirmation_description": "Choose or enter the real business rule. Your answers become confirmed conditions and regenerate nodes, branches, and deployment checks.",
-          "custom_answer": "Custom answer",
-          "custom_answer_placeholder": "Describe the condition in your own words",
-          "apply_answers": "Apply answers and regenerate",
-          "answer_required": "Answer at least one question to continue.",
-          "advanced": "Advanced",
-          "advanced_description": "Open the structured JSON editor only when you need precise control.",
-          "structured_json": "Editable structured workflow JSON",
-          "review_title": "Edit steps, owners, conditions, and exception handling. Revalidate after every change.",
-          "validate": "Revalidate",
-          "validated": "Schema and graph connectivity validated",
-          "review_required": "After editing the JSON, click Revalidate, then tick \"Reviewed\" at the top right to download.",
-          "review_confirm": "I reviewed branches, risks, and configuration gaps; generate the n8n file",
-          "error_empty": "Add an SOP before generating.",
-          "error_origin": "The page address could not be verified. Refresh and try again.",
-          "error_busy": "Several generations are running. Wait 5 seconds, then click Regenerate.",
-          "error_config": "The model service is not configured yet. Contact the administrator.",
-          "error_timeout": "This SOP has many steps and did not finish in time (your text is kept). Click Regenerate first; if it still fails, split the SOP into two parts, e.g. paste only the approval part.",
-          "error_invalid_output": "The model returned an incomplete structure this time (your text is kept). Regenerate usually fixes it; if it keeps failing, remove some minor details and try again.",
-          "error_provider": "The model service did not respond (your text is kept). Wait about 10 seconds, then click Regenerate.",
-          "error_provider_account": "The model service account is out of credit or its API key is invalid, so regenerating will not help. Top up or check the key in EvoLink, then generate again. Meanwhile, the sample result below shows the full output.",
-          "retry": "Regenerate",
-          "error_too_frequent": "That was too fast. Wait 10 seconds, then click Regenerate.",
-          "error_daily_limit": "Today's generation limit has been reached. It resets tomorrow.",
-          "details_incomplete": "The main workflow is ready. Node details (owners, inputs/outputs, error handling) were not completed this time.",
-          "complete_details": "Complete details",
-          "operation_labels": {
-            "read": "Read",
-            "transform": "Process",
-            "write": "Write",
-            "approve": "Approval",
-            "notify": "Notify",
-            "wait": "Wait",
-            "condition": "Decision",
-            "merge": "Merge",
-            "end": "End"
-          },
-          "branch_labels": {
-            "default": "Next",
-            "true": "Yes",
-            "false": "No",
-            "case": "Branch",
-            "error": "Exception"
-          },
-          "risk_levels": {
-            "low": "Low risk",
-            "medium": "Medium risk",
-            "high": "High risk"
-          },
-          "owner": "Owner",
-          "step_label": "Step",
-          "unknown_step": "Missing step",
-          "draft_errors": {
-            "syntax": "The content is not well formed. Check for missing commas, quotes or brackets, then validate again.",
-            "schema": "Some required details are missing or invalid. Compare with the previous version and validate again.",
-            "duplicate": "Two steps use the same number {step}. Give them different numbers.",
-            "unknown_actor": "The owner of step {step} is not in the role list.",
-            "too_few_branches": "Decision step {step} needs at least two branches.",
-            "unknown_target": "Step {step} points to a next step that does not exist.",
-            "unlabelled": "Step {step} has a connection without a description.",
-            "missing_condition": "Branch {branch} of decision step {step} has no condition.",
-            "unknown_error_target": "The exception handling of step {step} points to a step that does not exist.",
-            "unreachable": "These steps cannot be reached from the start: {steps}. Connect them to the workflow.",
-            "no_end": "The workflow needs at least one end step.",
-            "secret": "The content seems to include a key or password. Remove it and validate again.",
-            "generic": "The edited workflow did not pass validation. Check it and try again."
-          },
-          "sample_badge": "Sample result",
-          "sample_title": "This workflow was generated from the order fulfilment example SOP",
-          "sample_description": "Paste your own SOP to get the same steps, branches, exception handling, open questions and an n8n file.",
-          "sample_try": "Try this example",
+          "confirmation_description": "Choose or enter the real business rule. Your answers become confirmed constraints and regenerate feasibility, human–AI boundaries, and the rollout plan.",
           "condition_pending": "(applies after regenerating)",
           "confirmed_conditions": "Confirmed conditions",
           "remove_condition": "Remove",
           "option_conventional": "Use common industry practice",
           "option_configure_later": "Keep it as a setup item for now",
-          "error_kind_system": "System error",
-          "error_kind_business": "Business exception",
-          "system_error_handler": "System error handler",
-          "error_source_ai": "Added by AI",
-          "error_source_text": "From SOP",
-          "export_confirm": "I reviewed branches and setup",
+          "custom_answer": "Custom answer",
+          "custom_answer_placeholder": "Describe the condition in your own words",
+          "apply_answers": "Apply answers and regenerate",
+          "answer_required": "Answer at least one question to continue.",
+          "advanced": "Advanced",
+          "advanced_description": "Open the structured blueprint JSON only when you need precise control.",
+          "structured_json": "Editable structured blueprint JSON",
+          "review_title": "Edit roles, Skills, memory, or guardrails, then validate again.",
+          "validate": "Revalidate",
+          "validated": "Schema and graph connectivity validated",
+          "review_required": "Validate the JSON before human confirmation.",
+          "review_confirm": "I reviewed feasibility, human–AI boundaries, and risks; export the blueprint",
+          "export_confirm": "I reviewed the blueprint and risks",
           "export_confirm_short": "Reviewed",
           "export_hints": {
-            "busy": "Generating. Please wait a moment.",
-            "sample": "This is a sample. Generate your own workflow to review and download it.",
+            "busy": "The blueprint is still being generated.",
+            "empty": "Generate an AI-native blueprint before exporting it.",
             "invalid": "The JSON under Advanced has unvalidated edits. Open Advanced and click Revalidate.",
-            "confirm": "Tick \"I reviewed branches and setup\" next to this button first, then copy or download.",
-            "ai_errors": "{count} exception rules were added by AI (dashed boxes); check them first."
+            "confirm": "Tick \"I reviewed the blueprint and risks\" before copying or downloading."
           },
-          "error_generic": "The workflow could not be generated (your text is kept). Click Regenerate; if it still fails, refresh the page and try again.",
-          "workspace_title": "Draft workspace",
+          "error_empty": "Describe a business need before generating.",
+          "error_origin": "The page address could not be verified. Refresh and try again.",
+          "error_busy": "Generation is busy right now. Please try again shortly.",
+          "error_too_frequent": "That was too fast. Wait 10 seconds, then regenerate.",
+          "error_daily_limit": "Today's generation limit has been reached. It resets tomorrow.",
+          "error_config": "The model service is not configured yet. Contact the administrator.",
+          "error_timeout": "This business need is complex and the analysis did not finish in time. Your content is safe; you can regenerate it now.",
+          "error_invalid_output": "The generated blueprint was incomplete. Your content is safe; please regenerate it.",
+          "error_provider": "The model service is temporarily unavailable. Your content is safe; please regenerate it shortly.",
+          "error_provider_account": "The model service is out of credit or its API key is invalid. Top up or check the key in EvoLink, then try again.",
+          "draft_errors": {
+            "syntax": "The content is not well formed. Check for missing commas, quotes, or brackets, then validate again.",
+            "schema": "Some required blueprint details are missing or invalid.",
+            "duplicate": "Two stages use the same id {step}.",
+            "unknown_actor": "The owner of stage {step} is not in the role list.",
+            "too_few_branches": "Decision stage {step} needs at least two branches.",
+            "unknown_target": "Stage {step} points to a stage that does not exist.",
+            "unlabelled": "Stage {step} has a connection without a description.",
+            "missing_condition": "Branch {branch} of decision stage {step} has no condition.",
+            "unknown_error_target": "The exception handler of stage {step} points to a missing stage.",
+            "unreachable": "These stages cannot be reached from the start: {steps}.",
+            "no_end": "The blueprint needs at least one end stage.",
+            "secret": "The content seems to contain a key or password. Remove it and validate again.",
+            "generic": "The edited blueprint did not pass validation. Check it and try again."
+          },
+          "retry": "Regenerate",
+          "error_generic": "The blueprint could not be generated. Please try again.",
+          "workspace_title": "AI-native blueprint workspace",
           "local_session": "Local session",
           "input_tag": "Input",
           "natural_language": "Natural language",
-          "awaiting": "Awaiting source document",
+          "awaiting": "Awaiting a business need",
+          "feasibility": "Feasibility decision",
+          "blueprint": "Complete blueprint",
+          "feasibility_score": "AI-native feasibility",
+          "verdict_ready": "Ready to pilot",
+          "verdict_conditional": "Pilot after prerequisites",
+          "verdict_not_ready": "Not ready yet",
+          "human_ai_boundary": "Human–AI boundary",
+          "skill_library": "Skill library",
+          "data_plan": "Data capture plan",
+          "memory_plan": "Memory design",
+          "guardrails": "Quality and accountability guardrails",
+          "implementation_plan": "Phased rollout",
+          "export_blueprint": "Export blueprint",
           "benefits": [
             {
               "id": "complete-delivery",
-              "title": "SOP to handoff package",
-              "description": "Get workflow JSON, setup checks, and test guidance in one pass."
+              "title": "Judge before building",
+              "description": "Know whether the use case is worth doing before investing in implementation."
             },
             {
               "id": "local-processing",
               "title": "Transient analysis",
-              "description": "Your SOP is used for this model request and is not written to the business database."
+              "description": "Your business description is used for this request and is not written to the business database."
             },
             {
               "id": "credential-safety",
-              "title": "Credentials stay in n8n",
-              "description": "Secrets stay out of generated files and are bound only during deployment."
+              "title": "Humans stay in the critical loop",
+              "description": "Accountable and irreversible decisions always retain a human checkpoint."
             }
           ]
         }
@@ -191,31 +166,31 @@
         "block": "features-step",
         "id": "how-it-works",
         "label": "How it works",
-        "title": "From business language to a reviewable automation draft",
-        "description": "Keep the language operations teams already use while aligning process design, technical setup, and acceptance testing.",
+        "title": "From business language to an actionable AI-native operating model",
+        "description": "Judge first, design second, then stress-test—so AI capability, human accountability, data, and organizational learning form one loop.",
         "items": [
           {
-            "title": "Describe the real SOP",
-            "description": "Paste an existing policy, operating guide, or frontline process description.",
-            "tip": "Natural language input",
+            "title": "Describe the business goal",
+            "description": "Explain the outcome, current process, team, information sources, and hard constraints.",
+            "tip": "Structured need",
             "icon": "FileText"
           },
           {
-            "title": "Detect steps and decisions",
-            "description": "Extract triggers, data actions, conditions, approvals, and notifications.",
-            "tip": "Structured business logic",
+            "title": "Judge feasibility",
+            "description": "Score task structure, data readiness, externalized judgment, tolerance, and feedback loops.",
+            "tip": "Avoid wasted investment",
             "icon": "ScanSearch"
           },
           {
-            "title": "Review the setup plan",
-            "description": "Get assumptions, configuration gaps, and critical test scenarios with the flow.",
-            "tip": "Review before deployment",
+            "title": "Generate the blueprint",
+            "description": "Design roles, Skills, data capture, memory, guardrails, and implementation phases together.",
+            "tip": "Six connected modules",
             "icon": "ListChecks"
           },
           {
-            "title": "Import into n8n",
-            "description": "Download standard JSON, add connections in n8n, and continue orchestrating.",
-            "tip": "n8n-ready JSON",
+            "title": "Stress-test and decide",
+            "description": "Attack the design with failure cases, then let people resolve the remaining decisions.",
+            "tip": "Humans in the critical loop",
             "icon": "Workflow"
           }
         ]
@@ -223,37 +198,37 @@
       "features": {
         "id": "features",
         "label": "Capabilities",
-        "title": "Built to put ERP workflows into production",
-        "description": "More than a diagram: a practical automation skeleton your team can configure, validate, and run.",
+        "title": "Built to make AI-native work real",
+        "description": "More than prompts or a demo: an operating blueprint your team can pilot, validate, and continuously improve.",
         "items": [
           {
-            "title": "SOP semantic analysis",
-            "description": "Embedded ERP-focused prompts identify actions, rules, and exception paths.",
+            "title": "Feasibility first",
+            "description": "Know whether the use case is worth doing and what must be fixed before a pilot.",
             "icon": "BrainCircuit"
           },
           {
-            "title": "Standard n8n JSON",
-            "description": "Generate nodes and connections you can download, copy, and keep editing.",
+            "title": "Human–AI accountability",
+            "description": "Define what AI does, what people own, the handoff artifact, and acceptance criteria.",
             "icon": "Braces"
           },
           {
-            "title": "Credential-safe by design",
-            "description": "Secrets are never invented or embedded; connections stay explicit for deployment.",
+            "title": "Skills and triggers",
+            "description": "Turn one-off prompts into reusable capabilities with defined inputs, outputs, and activation rules.",
             "icon": "ShieldCheck"
           },
           {
-            "title": "Flexible triggers",
-            "description": "Start workflows manually, on a schedule, or from an incoming webhook.",
+            "title": "Data and memory design",
+            "description": "Plan what to capture during work, where memory reads and writes, and how it stays clean and current.",
             "icon": "Webhook"
           },
           {
-            "title": "Deployment checklist",
-            "description": "Carry endpoints, field mapping, retry rules, and test requirements into handoff.",
+            "title": "Adversarial quality checks",
+            "description": "Create guardrails and tests for hallucination, cold start, missing data, and accountability gaps.",
             "icon": "ListChecks"
           },
           {
-            "title": "Bilingual workspace",
-            "description": "The product interface and core guidance work in both English and Chinese.",
+            "title": "Actionable rollout plan",
+            "description": "Break the blueprint into pilot, evaluation, and scale phases with measurable success criteria.",
             "icon": "Languages"
           }
         ]
@@ -261,38 +236,38 @@
       "faq": {
         "id": "faq",
         "label": "FAQ",
-        "title": "What teams ask before deployment",
-        "description": "Clear answers about generated workflows, data handling, and n8n setup.",
+        "title": "What teams ask before they build",
+        "description": "Clear answers about AI-native blueprints, human accountability, and data safety.",
         "items": [
           {
-            "title": "Can I import the JSON directly into n8n?",
-            "description": "Yes. The generated nodes and connections form an importable skeleton. Your real ERP endpoints, credentials, and field mappings still need to be configured in n8n."
+            "title": "How is AI-native different from using an AI tool?",
+            "description": "A tool solves one task. An AI-native system redesigns roles, Skills, data, and memory so the operating model improves through feedback."
           },
           {
-            "title": "Do I need to know n8n first?",
-            "description": "No. Operations teams can describe and review the SOP first, while technical owners complete connections and production validation."
+            "title": "What does 'not ready' mean?",
+            "description": "It is not a permanent rejection. It means current information, tolerance, or feedback conditions are insufficient; the blueprint lists the blockers and fixes."
           },
           {
-            "title": "Does it store ERP credentials?",
-            "description": "The current foundation generates drafts locally in your browser and never asks you to put secrets in the SOP. Production connections should use n8n credentials."
+            "title": "Do I need technical expertise?",
+            "description": "No. Business owners describe the goal and decide critical boundaries; technical teams connect real data and tools during implementation."
           },
           {
-            "title": "Which ERP processes fit best?",
-            "description": "Order fulfillment, replenishment, purchasing approvals, reconciliation, master-data sync, and exception alerts are strong starting points."
+            "title": "Can the blueprint go straight to production?",
+            "description": "It is an implementation-ready design input, not an untested production system. Start with a small pilot using real samples and human acceptance."
           },
           {
-            "title": "How does the AI analysis work?",
-            "description": "ERP SOP analysis and n8n orchestration prompts are embedded in the product. This preview uses deterministic local generation; a model service can extend complex language and branch recognition next."
+            "title": "How is business information handled?",
+            "description": "Your description is used for this model analysis and never needs passwords or API keys. Sensitive connections belong in secure credential systems during implementation."
           }
         ]
       },
       "cta": {
         "id": "cta",
-        "title": "Turn your next SOP into a workflow that can run",
-        "description": "Start with a real process description and get a reviewable, handoff-ready n8n automation draft in minutes.",
+        "title": "Turn your next business goal into an AI-native blueprint",
+        "description": "Start with a real need and get feasibility, human–AI roles, Skills, memory, guardrails, and a pilot plan.",
         "buttons": [
           {
-            "title": "Start generating",
+            "title": "Start building",
             "url": "#workspace",
             "icon": "ArrowUpRight"
           }

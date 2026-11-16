@@ -2,10 +2,10 @@
   "header": {
     "id": "header",
     "brand": {
-      "title": "SOP2Workflow",
+      "title": "NativeOps",
       "logo": {
         "src": "/logo.svg",
-        "alt": "SOP2Workflow",
+        "alt": "NativeOps",
         "width": 40,
         "height": 40
       },
@@ -32,11 +32,11 @@
   "footer": {
     "id": "footer",
     "brand": {
-      "title": "SOP2Workflow",
-      "description": "把 ERP 业务 SOP 转换为可审阅、可导入 n8n 的自动化工作流。",
+      "title": "NativeOps",
+      "description": "把业务需求变成能落地、能验收、能持续学习的 AI Native 工作方式。",
       "logo": {
         "src": "/logo.svg",
-        "alt": "SOP2Workflow",
+        "alt": "NativeOps",
         "width": 40,
         "height": 40
       },
@@ -57,9 +57,9 @@
           "children": [
             { "title": "常见问题", "url": "/#faq", "target": "_self" },
             {
-              "title": "n8n 官方文档",
-              "url": "https://docs.n8n.io/",
-              "target": "_blank"
+              "title": "AI Native 蓝图",
+              "url": "/#features",
+              "target": "_self"
             }
           ]
         }

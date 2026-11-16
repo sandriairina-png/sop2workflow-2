@@ -16,6 +16,143 @@ export type WorkflowGraphRow = {
   }>;
 };
 
+export function buildBlueprintMarkdown(
+  analysis: SopAnalysis,
+  language: 'zh' | 'en'
+) {
+  const blueprint = analysis.nativeBlueprint;
+  const feasibility = analysis.feasibility;
+  const labels =
+    language === 'zh'
+      ? {
+          feasibility: 'AI Native 可行性',
+          waiting: '等待进一步评估。',
+          objective: '目标',
+          roles: '人机分工',
+          skills: 'Skill 清单',
+          data: '数据采集',
+          memory: '记忆设计',
+          guardrails: '护栏',
+          phases: '实施计划',
+          ai: 'AI',
+          human: '人',
+          handoff: '交接物',
+          acceptance: '验收',
+          input: '输入',
+          output: '输出',
+          purpose: '用于',
+          read: '读取',
+          write: '写入',
+          governance: '治理',
+          humanCheckpoint: '人工检查点',
+          deliverables: '交付',
+          metric: '指标',
+          verdicts: {
+            ready: '适合试点',
+            conditional: '补齐条件后试点',
+            not_ready: '暂不适合',
+          },
+        }
+      : {
+          feasibility: 'AI-native feasibility',
+          waiting: 'Awaiting further assessment.',
+          objective: 'Objective',
+          roles: 'Human–AI roles',
+          skills: 'Skill library',
+          data: 'Data capture',
+          memory: 'Memory design',
+          guardrails: 'Guardrails',
+          phases: 'Implementation plan',
+          ai: 'AI',
+          human: 'Human',
+          handoff: 'handoff',
+          acceptance: 'acceptance',
+          input: 'input',
+          output: 'output',
+          purpose: 'purpose',
+          read: 'read',
+          write: 'write',
+          governance: 'governance',
+          humanCheckpoint: 'human checkpoint',
+          deliverables: 'deliverables',
+          metric: 'metric',
+          verdicts: {
+            ready: 'Ready to pilot',
+            conditional: 'Pilot after prerequisites',
+            not_ready: 'Not ready yet',
+          },
+        };
+  const lines = [
+    `# ${analysis.title}`,
+    '',
+    analysis.summary,
+    '',
+    `## ${labels.feasibility}`,
+    '',
+    feasibility
+      ? `**${feasibility.score}/100 · ${labels.verdicts[feasibility.verdict]}** — ${feasibility.summary}`
+      : labels.waiting,
+    '',
+  ];
+
+  if (feasibility?.dimensions.length) {
+    lines.push(
+      ...feasibility.dimensions.map(
+        (item) => `- **${item.name} ${item.score}/100**: ${item.reason}`
+      ),
+      ''
+    );
+  }
+  if (blueprint) {
+    lines.push(`## ${labels.objective}`, '', blueprint.objective, '');
+    lines.push(
+      `## ${labels.roles}`,
+      '',
+      ...blueprint.humanAiBoundary.map(
+        (item) =>
+          `- **${item.stage}**: ${labels.ai} ${item.aiRole}; ${labels.human} ${item.humanRole}; ${labels.handoff} ${item.handoff}; ${labels.acceptance} ${item.acceptance}`
+      ),
+      '',
+      `## ${labels.skills}`,
+      '',
+      ...blueprint.skills.map(
+        (item) =>
+          `- **${item.name}**: ${item.trigger}; ${labels.input} ${item.input}; ${labels.output} ${item.output}`
+      ),
+      '',
+      `## ${labels.data}`,
+      '',
+      ...blueprint.dataPlan.map(
+        (item) =>
+          `- **${item.source}**: ${item.captureAt}; ${labels.purpose} ${item.purpose}`
+      ),
+      '',
+      `## ${labels.memory}`,
+      '',
+      ...blueprint.memoryPlan.map(
+        (item) =>
+          `- **${item.layer}**: ${labels.read} ${item.readAt}; ${labels.write} ${item.writeAt}; ${labels.governance} ${item.governance}`
+      ),
+      '',
+      `## ${labels.guardrails}`,
+      '',
+      ...blueprint.guardrails.map(
+        (item) =>
+          `- **${item.risk}**: ${item.rule}; ${labels.humanCheckpoint} ${item.humanCheckpoint}`
+      ),
+      '',
+      `## ${labels.phases}`,
+      '',
+      ...blueprint.implementationPhases.map(
+        (item) =>
+          `- **${item.phase}**: ${item.goal}; ${labels.deliverables} ${item.deliverables.join(language === 'zh' ? '、' : ', ')}; ${labels.metric} ${item.successMetric}`
+      ),
+      ''
+    );
+  }
+  return lines.join('\n');
+}
+
 export function buildWorkflowGraphRows(
   analysis: SopAnalysis
 ): WorkflowGraphRow[] {

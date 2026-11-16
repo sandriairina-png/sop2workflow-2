@@ -16,6 +16,12 @@ test('gives the model an exact JSON contract for each stage', () => {
   );
   assert.match(SOP_PLAN_SYSTEM_PROMPT, /"confirmationQuestions":\[/);
   assert.match(SOP_PLAN_SYSTEM_PROMPT, /"deploymentChecklist":\[/);
+  assert.match(SOP_PLAN_SYSTEM_PROMPT, /"feasibility":\{/);
+  assert.match(SOP_PLAN_SYSTEM_PROMPT, /"nativeBlueprint":\{/);
+  assert.match(SOP_PLAN_SYSTEM_PROMPT, /"humanAiBoundary":\[/);
+  assert.match(SOP_PLAN_SYSTEM_PROMPT, /"skills":\[/);
+  assert.match(SOP_PLAN_SYSTEM_PROMPT, /"memoryPlan":\[/);
+  assert.match(SOP_PLAN_SYSTEM_PROMPT, /"guardrails":\[/);
 });
 
 test('states the system and business exception rule', () => {

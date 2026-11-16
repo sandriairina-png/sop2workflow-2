@@ -1,14 +1,14 @@
 {
   "metadata": {
-    "title": "SOP2Workflow — ERP SOP to n8n workflows",
-    "description": "Turn ERP standard operating procedures into reviewable, downloadable automation workflows ready for n8n.",
-    "keywords": "ERP SOP, n8n workflow, process automation, SOP to workflow, enterprise automation"
+    "title": "NativeOps — AI-native business builder",
+    "description": "Turn a business need into an AI-native blueprint connecting feasibility, human–AI roles, Skills, data, memory, and rollout.",
+    "keywords": "AI Native, AI business builder, human AI collaboration, AI Skills, agent design, enterprise AI"
   },
   "sign": {
     "sign_in_title": "Sign In",
     "sign_in_description": "Sign in to your account",
-    "modal_title": "Continue building workflows",
-    "modal_description": "Sign in to save, review, and export your n8n workflows.",
+    "modal_title": "Continue building AI-native blueprints",
+    "modal_description": "Sign in to save, review, and export your AI-native operating blueprint.",
     "sign_up_title": "Sign Up",
     "sign_up_description": "Create an account",
     "email_title": "Email",
