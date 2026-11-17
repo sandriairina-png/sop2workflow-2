@@ -2,14 +2,13 @@
   max-width: 1600px;
   font-family: var(--font-sans), 'Avenir Next', 'Arial Black', sans-serif;
   font-size: clamp(2.25rem, 6.6vw, 4.5rem);
-  font-style: italic;
-  font-weight: 850;
-  line-height: 1.02;
-  letter-spacing: -0.025em;
-  word-spacing: 0.08em;
+  font-style: normal;
+  font-weight: 720;
+  line-height: 0.98;
+  letter-spacing: -0.038em;
+  word-spacing: 0;
   word-break: keep-all;
-  text-wrap: balance;
-  text-shadow: 0 3px 50px rgb(0 0 0 / 0.35);
+  text-wrap: pretty;
 }
 
 .heroDescription {

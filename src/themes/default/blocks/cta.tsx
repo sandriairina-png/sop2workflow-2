@@ -8,6 +8,8 @@ import { ScrollAnimation } from '@/shared/components/ui/scroll-animation';
 import { cn } from '@/shared/lib/utils';
 import { Section } from '@/shared/types/blocks/landing';
 
+import { NativeOpsClosingMark } from './nativeops-brand-visuals';
+
 export function Cta({
   section,
   className,
@@ -54,8 +56,12 @@ export function Cta({
               />
             </ScrollAnimation>
 
+            <ScrollAnimation delay={0.22}>
+              <NativeOpsClosingMark className="mx-auto mt-4 h-auto w-full max-w-[720px]" />
+            </ScrollAnimation>
+
             <ScrollAnimation delay={0.3}>
-              <div className="mt-12 flex flex-wrap justify-center gap-4">
+              <div className="mt-2 flex flex-wrap justify-center gap-4">
                 {section.buttons?.map((button, idx) => (
                   <Button
                     asChild

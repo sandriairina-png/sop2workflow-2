@@ -33,6 +33,10 @@ import { cn } from '@/shared/lib/utils';
 import { Section } from '@/shared/types/blocks/landing';
 
 import {
+  NativeOpsHeroMark,
+  NativeOpsSignalIcon,
+} from './nativeops-brand-visuals';
+import {
   buildBlueprintMarkdown,
   buildClarificationAnswers,
   describeDraftError,
@@ -506,8 +510,6 @@ export function SopWorkflowStudio({
       icon: Webhook,
     },
   ];
-  const benefitIcons = [CheckCircle2, Workflow, ShieldCheck];
-
   const setupSections = validatedAnalysis
     ? [
         {
@@ -611,49 +613,58 @@ export function SopWorkflowStudio({
       <div className="relative mx-auto flex max-w-[1680px] flex-col items-center px-5 pt-[92px] pb-10 md:px-10 xl:px-14">
         <div className="linearity-hero-copy mx-auto w-full max-w-[1600px] text-center">
           <div className="linearity-hero-intro grid min-h-[calc(100svh-92px)] w-full items-center gap-10 py-10 md:py-12 xl:grid-cols-[minmax(0,1fr)_minmax(520px,0.86fr)] xl:gap-14 xl:py-8">
-            <div className="linearity-hero-main flex flex-col items-center xl:col-span-2">
-              <h1
-                className={cn(
-                  studioStyles.heroTitle,
-                  'linearity-hero-title mx-auto text-[#f8f7f4] xl:max-w-[780px]'
-                )}
-              >
-                {section.title}
-              </h1>
+            <div className="linearity-hero-main xl:col-span-2">
+              <div className="grid w-full items-center gap-8 text-left lg:grid-cols-[minmax(0,.88fr)_minmax(460px,1.12fr)] lg:gap-10">
+                <div className="flex flex-col items-center lg:items-start">
+                  <h1
+                    className={cn(
+                      studioStyles.heroTitle,
+                      'linearity-hero-title text-center text-[#f8f7f4] lg:text-left'
+                    )}
+                  >
+                    {section.title}
+                  </h1>
 
-              <p
-                className={cn(
-                  studioStyles.heroDescription,
-                  'linearity-hero-description mx-auto mt-7 max-w-[760px] text-white/72 md:mt-9'
-                )}
-              >
-                {section.description}
-              </p>
+                  <p
+                    className={cn(
+                      studioStyles.heroDescription,
+                      'linearity-hero-description mt-7 max-w-[660px] text-center text-white/72 md:mt-9 lg:text-left'
+                    )}
+                  >
+                    {section.description}
+                  </p>
 
-              <button
-                type="button"
-                onClick={revealInput}
-                className={cn(
-                  studioStyles.heroStart,
-                  'linearity-hero-start mt-8 md:mt-10'
-                )}
-                aria-controls="sop-input"
-              >
-                {copy.primary_cta || 'Get started'}
-              </button>
+                  <button
+                    type="button"
+                    onClick={revealInput}
+                    className={cn(
+                      studioStyles.heroStart,
+                      'linearity-hero-start mt-8 md:mt-10'
+                    )}
+                    aria-controls="sop-input"
+                  >
+                    {copy.primary_cta || 'Get started'}
+                  </button>
+                </div>
+                <div className="nativeops-hero-stage relative flex min-h-[190px] items-center justify-center md:min-h-[260px] lg:min-h-[330px]">
+                  <NativeOpsHeroMark className="w-full max-w-[760px]" />
+                </div>
+              </div>
             </div>
 
             {copy.benefits?.length ? (
               <div className="linearity-hero-benefits grid w-full gap-2.5 text-left md:grid-cols-3 xl:col-span-2">
                 {copy.benefits.map((benefit, index) => {
-                  const BenefitIcon = benefitIcons[index] || CheckCircle2;
                   return (
                     <article
                       key={benefit.id}
                       className="group flex min-h-[88px] items-start gap-4 rounded-2xl border border-white/10 bg-[#0d0e12]/80 px-5 py-4 transition-colors hover:border-white/24 hover:bg-[#15161c]"
                     >
-                      <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-white text-[#090a0d]">
-                        <BenefitIcon className="size-4" strokeWidth={1.7} />
+                      <div className="mt-0.5 grid size-9 shrink-0 place-items-center text-white/80">
+                        <NativeOpsSignalIcon
+                          variant={index}
+                          className="size-9"
+                        />
                       </div>
                       <div className="min-w-0">
                         <h2 className="text-sm font-semibold tracking-[-0.02em] text-white/90 md:text-[15px]">

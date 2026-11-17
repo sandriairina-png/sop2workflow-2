@@ -310,7 +310,7 @@ test('lower landing blocks use the approved editorial composition', () => {
   assert.match(cta, /linearity-closing-cta/);
 });
 
-test('work method uses a compact four-step horizontal stepper', () => {
+test('work method uses a compact four-step branded journey', () => {
   const step = readFileSync(
     new URL('../../themes/default/blocks/features-step.tsx', import.meta.url),
     'utf8'
@@ -318,7 +318,7 @@ test('work method uses a compact four-step horizontal stepper', () => {
 
   assert.match(step, /<ol/);
   assert.match(step, /lg:grid-cols-4/);
-  assert.match(step, /linearity-step-connector/);
+  assert.match(step, /NativeOpsJourney/);
   assert.doesNotMatch(step, /linearity-editorial-canvas/);
 });
 
@@ -373,8 +373,8 @@ test('landing typography stays restrained across narrow and desktop layouts', ()
     styles,
     /\.heroTitle[\s\S]*font-size:\s*clamp\(2\.25rem, 6\.6vw, 4\.5rem\)/
   );
-  assert.match(styles, /\.heroTitle[\s\S]*font-style:\s*italic/);
-  assert.match(styles, /\.heroTitle[\s\S]*letter-spacing:\s*-0\.025em/);
+  assert.match(styles, /\.heroTitle[\s\S]*font-style:\s*normal/);
+  assert.match(styles, /\.heroTitle[\s\S]*letter-spacing:\s*-0\.038em/);
   assert.match(styles, /\.heroTitle[\s\S]*word-break:\s*keep-all/);
   assert.match(source, /linearity-submit[^"\n]*size-\[29px\]/);
 });
@@ -491,6 +491,44 @@ test('result preview renders the complete AI Native blueprint', () => {
   assert.match(studio, /memoryPlan/);
   assert.match(studio, /guardrails/);
   assert.match(studio, /implementationPhases/);
+});
+
+test('landing page carries a product-specific NativeOps SVG language', () => {
+  const studio = readFileSync(
+    new URL(
+      '../../themes/default/blocks/sop-workflow-studio.tsx',
+      import.meta.url
+    ),
+    'utf8'
+  );
+  const steps = readFileSync(
+    new URL('../../themes/default/blocks/features-step.tsx', import.meta.url),
+    'utf8'
+  );
+  const features = readFileSync(
+    new URL('../../themes/default/blocks/features.tsx', import.meta.url),
+    'utf8'
+  );
+  const cta = readFileSync(
+    new URL('../../themes/default/blocks/cta.tsx', import.meta.url),
+    'utf8'
+  );
+  const visuals = readFileSync(
+    new URL(
+      '../../themes/default/blocks/nativeops-brand-visuals.tsx',
+      import.meta.url
+    ),
+    'utf8'
+  );
+
+  assert.match(studio, /NativeOpsHeroMark/);
+  assert.match(studio, /NativeOpsSignalIcon/);
+  assert.match(steps, /NativeOpsJourney/);
+  assert.match(features, /NativeOpsSystemMap/);
+  assert.match(cta, /NativeOpsClosingMark/);
+  assert.match(visuals, /aria-hidden="true"/);
+  assert.match(visuals, /vectorEffect="non-scaling-stroke"/);
+  assert.doesNotMatch(visuals, /linearGradient|radialGradient|feTurbulence/);
 });
 
 test('SOP input panel stays transparent behind the animated border', () => {

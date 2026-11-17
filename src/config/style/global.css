@@ -503,6 +503,99 @@ pre {
   background-color: #090a0d;
 }
 
+.nativeops-hero-stage {
+  isolation: isolate;
+}
+
+.nativeops-hero-stage::before {
+  position: absolute;
+  z-index: -1;
+  width: 72%;
+  height: 62%;
+  border-radius: 999px;
+  background: rgb(8 9 12 / 0.44);
+  content: '';
+}
+
+.nativeops-hero-mark,
+.nativeops-journey,
+.nativeops-system-map,
+.nativeops-closing-mark {
+  overflow: visible;
+}
+
+.nativeops-vector-orbit {
+  transform-origin: center;
+  animation: nativeops-orbit-turn 28s linear infinite;
+}
+
+.nativeops-vector-nodes > g {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nativeops-node-breathe 3.8s ease-in-out infinite alternate;
+}
+
+.nativeops-vector-pulse,
+.nativeops-system-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nativeops-signal-pulse 2.4s ease-out infinite;
+}
+
+.nativeops-journey-trace,
+.nativeops-closing-trace {
+  stroke-dasharray: 0.16 0.84;
+  animation: nativeops-trace 5.2s linear infinite;
+}
+
+.nativeops-system-module {
+  opacity: 0.72;
+  transform: translateY(5px);
+  transition:
+    opacity 240ms ease,
+    transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nativeops-system-map:hover .nativeops-system-module {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes nativeops-orbit-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes nativeops-node-breathe {
+  from {
+    opacity: 0.58;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes nativeops-signal-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.8);
+  }
+  52% {
+    opacity: 1;
+    transform: scale(1.55);
+  }
+}
+
+@keyframes nativeops-trace {
+  to {
+    stroke-dashoffset: -1;
+  }
+}
+
 .linearity-node {
   opacity: 0;
   transform: translateY(14px) scale(0.99);
@@ -614,7 +707,13 @@ pre {
   .linearity-hero-orb::after,
   .linearity-scroll-arrow,
   .linearity-node,
-  .linearity-flow-line::after {
+  .linearity-flow-line::after,
+  .nativeops-vector-orbit,
+  .nativeops-vector-nodes > g,
+  .nativeops-vector-pulse,
+  .nativeops-system-pulse,
+  .nativeops-journey-trace,
+  .nativeops-closing-trace {
     animation: none;
   }
 

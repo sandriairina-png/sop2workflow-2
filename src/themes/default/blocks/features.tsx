@@ -1,9 +1,13 @@
 'use client';
 
-import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { ScrollAnimation } from '@/shared/components/ui/scroll-animation';
 import { cn } from '@/shared/lib/utils';
 import { Section } from '@/shared/types/blocks/landing';
+
+import {
+  NativeOpsSignalIcon,
+  NativeOpsSystemMap,
+} from './nativeops-brand-visuals';
 
 export function Features({
   section,
@@ -21,41 +25,39 @@ export function Features({
         className
       )}
     >
-      <div className="mx-auto max-w-[1680px] space-y-14 px-5 md:px-10 xl:px-14">
+      <div className="mx-auto grid max-w-[1680px] gap-16 px-5 md:px-10 lg:grid-cols-[minmax(0,.95fr)_minmax(440px,1.05fr)] lg:items-start xl:gap-24 xl:px-14">
         <ScrollAnimation>
-          <div className="grid gap-8 lg:grid-cols-[.72fr_1.28fr] lg:items-end">
-            <span className="text-[10px] tracking-[0.08em] text-[#a99cff]">
-              {section.label}
-            </span>
-            <div>
-              <h2 className="mt-5 mb-5 text-3xl font-medium tracking-[-0.04em] md:text-5xl">
-                {section.title}
-              </h2>
-              <p className="max-w-2xl text-sm leading-7 text-white/42">
-                {section.description}
-              </p>
-            </div>
+          <div className="lg:sticky lg:top-28">
+            <h2 className="max-w-2xl text-3xl font-medium tracking-[-0.04em] md:text-5xl">
+              {section.title}
+            </h2>
+            <p className="mt-6 max-w-xl text-sm leading-7 text-white/48 md:text-base">
+              {section.description}
+            </p>
+            <NativeOpsSystemMap className="mt-10 w-full max-w-[760px]" />
           </div>
         </ScrollAnimation>
 
-        <ScrollAnimation delay={0.2}>
-          <div className="relative mx-auto grid overflow-hidden rounded-[30px] border border-white/[0.1] bg-black/25 sm:grid-cols-2 lg:grid-cols-3">
+        <ScrollAnimation delay={0.16}>
+          <div className="space-y-3">
             {section.items?.map((item, idx) => (
-              <div
-                className="group min-h-56 space-y-6 border-r border-b border-white/[0.07] p-7 transition-[background-color] duration-200 hover:bg-white/[0.045] md:p-9"
+              <article
+                className="group grid grid-cols-[52px_1fr] gap-4 rounded-2xl bg-white/[0.025] px-4 py-5 transition-colors hover:bg-white/[0.06] md:grid-cols-[64px_1fr] md:px-6 md:py-6"
                 key={idx}
               >
-                <div className="flex items-center justify-between">
-                  <div className="grid size-11 place-items-center rounded-full bg-white text-[#090a0d] transition-transform duration-200 group-hover:scale-105">
-                    <SmartIcon name={item.icon as string} size={18} />
-                  </div>
-                  <span className="text-[9px] text-white/24">0{idx + 1}</span>
+                <NativeOpsSignalIcon
+                  variant={idx}
+                  className="size-11 text-white/72 transition-transform duration-300 group-hover:translate-x-1 md:size-12"
+                />
+                <div>
+                  <h3 className="text-base font-medium text-white/92">
+                    {item.title}
+                  </h3>
+                  <p className="mt-2 max-w-xl text-sm leading-6 text-white/46">
+                    {item.description}
+                  </p>
                 </div>
-                <h3 className="text-sm font-medium">{item.title}</h3>
-                <p className="text-xs leading-6 text-white/38">
-                  {item.description}
-                </p>
-              </div>
+              </article>
             ))}
           </div>
         </ScrollAnimation>
