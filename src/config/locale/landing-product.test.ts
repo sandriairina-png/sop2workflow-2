@@ -531,6 +531,28 @@ test('landing page carries a product-specific NativeOps SVG language', () => {
   assert.doesNotMatch(visuals, /linearGradient|radialGradient|feTurbulence/);
 });
 
+test('empty workspace presents a labelled blueprint template with a try action', () => {
+  for (const locale of ['zh', 'en']) {
+    const workspace = json(`./messages/${locale}/pages/index.json`).page
+      .sections.hero.workspace;
+    assert.ok(workspace.template_demo);
+    assert.ok(workspace.try_template);
+    assert.ok(workspace.demo_title);
+    assert.equal(workspace.demo_stages.length, 4);
+  }
+
+  const studio = readFileSync(
+    new URL(
+      '../../themes/default/blocks/sop-workflow-studio.tsx',
+      import.meta.url
+    ),
+    'utf8'
+  );
+  assert.match(studio, /template_demo/);
+  assert.match(studio, /tryTemplate/);
+  assert.match(studio, /NativeOpsDemoBlueprint/);
+});
+
 test('SOP input panel stays transparent behind the animated border', () => {
   const styles = readFileSync(
     new URL('../style/global.css', import.meta.url),

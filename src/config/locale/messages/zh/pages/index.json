@@ -53,6 +53,17 @@
           "stage_description": "先判断是否值得做，再明确人机边界、Skill、数据、记忆、护栏与落地计划。",
           "empty_title": "等待你的业务需求",
           "empty_description": "描述目标、现状与约束，这里会生成可行性判断和一份可以直接讨论、试点与迭代的 AI Native 蓝图。",
+          "template_demo": "模板演示图",
+          "try_template": "去体验",
+          "demo_title": "内容团队 AI Native 生产蓝图",
+          "demo_summary": "以两人内容团队为例：AI 负责研究、初稿与复盘，人负责方向确认、事实核验和最终发布。",
+          "demo_score": "可行性 82 / 100",
+          "demo_stages": [
+            "汇集客户访谈、产品更新与行业信号",
+            "AI 生成选题依据和三个内容方向",
+            "主编确认方向并审核敏感信息",
+            "生成多渠道内容并记录反馈数据"
+          ],
           "nodes": "个业务阶段",
           "generated": "蓝图已生成",
           "copy": "复制蓝图",

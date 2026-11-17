@@ -33,6 +33,7 @@ import { cn } from '@/shared/lib/utils';
 import { Section } from '@/shared/types/blocks/landing';
 
 import {
+  NativeOpsDemoBlueprint,
   NativeOpsHeroMark,
   NativeOpsSignalIcon,
 } from './nativeops-brand-visuals';
@@ -83,6 +84,12 @@ type StudioCopy = {
   stage_description?: string;
   empty_title?: string;
   empty_description?: string;
+  template_demo?: string;
+  try_template?: string;
+  demo_title?: string;
+  demo_summary?: string;
+  demo_score?: string;
+  demo_stages?: string[];
   nodes?: string;
   generated?: string;
   copy?: string;
@@ -298,6 +305,13 @@ export function SopWorkflowStudio({
       () => textareaRef.current?.focus({ preventScroll: true }),
       520
     );
+  }
+
+  function tryTemplate() {
+    setSop(examples[0] || '');
+    setError('');
+    setErrorRetryable(false);
+    revealInput();
   }
 
   async function generate(newAnswers: SopClarification[] = []) {
@@ -896,7 +910,21 @@ export function SopWorkflowStudio({
                   {value === 'flow' ? copy.preview : copy.setup}
                 </button>
               ))}
-              <div className="relative flex items-center gap-2">
+              {!result ? (
+                <button
+                  type="button"
+                  onClick={tryTemplate}
+                  className="rounded-full bg-white px-4 py-2 text-[11px] font-medium text-[#090a0d] transition hover:bg-white/88"
+                >
+                  {copy.try_template || 'Try it'}
+                </button>
+              ) : null}
+              <div
+                className={cn(
+                  'relative items-center gap-2',
+                  result ? 'flex' : 'hidden'
+                )}
+              >
                 {blueprintMarkdown ? (
                   <label
                     title={copy.review_confirm}
@@ -976,23 +1004,54 @@ export function SopWorkflowStudio({
 
           <div className="linearity-product-canvas min-h-[600px] md:min-h-[680px]">
             {!result ? (
-              <div className="flex min-h-[600px] flex-col items-center justify-center px-6 text-center md:min-h-[680px]">
-                <div className="linearity-empty-flow mb-8 flex items-center">
-                  <span className="grid size-14 place-items-center rounded-2xl border border-white/10 bg-black/25 text-white/45">
-                    <FileInput className="size-5" />
+              <div className="min-h-[600px] px-5 py-8 md:min-h-[680px] md:px-10 md:py-12">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="rounded-full bg-[#a99cff]/10 px-3 py-1.5 text-[10px] font-medium tracking-[0.06em] text-[#c9c1ff]">
+                    {copy.template_demo || 'Template preview'}
                   </span>
-                  <span className="h-px w-20 bg-white/22 md:w-32" />
-                  <span className="grid size-14 place-items-center rounded-2xl border border-white/16 bg-[#15161c] text-white">
-                    <Workflow className="size-5" />
+                  <span className="text-[10px] font-medium text-[#a9f59d]">
+                    {copy.demo_score || 'Feasibility 82 / 100'}
                   </span>
                 </div>
-                <div className="text-[10px] tracking-[0.08em] text-[#a99cff]">
-                  {copy.awaiting || 'Awaiting a business need'}
+                <div className="mt-10 grid items-center gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14">
+                  <div>
+                    <div className="text-[10px] tracking-[0.08em] text-[#a99cff]">
+                      {copy.awaiting || 'Example blueprint'}
+                    </div>
+                    <h3 className="mt-4 max-w-xl text-2xl font-semibold tracking-[-0.035em] text-balance md:text-4xl">
+                      {copy.demo_title || copy.empty_title}
+                    </h3>
+                    <p className="mt-5 max-w-lg text-sm leading-7 text-white/45">
+                      {copy.demo_summary || copy.empty_description}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={tryTemplate}
+                      className="mt-7 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[11px] font-medium text-[#090a0d] transition hover:bg-white/88"
+                    >
+                      {copy.try_template || 'Try it'}
+                      <ArrowUp className="size-3 rotate-45" />
+                    </button>
+                  </div>
+                  <div className="rounded-[24px] bg-black/20 px-4 py-6 md:px-7 md:py-8">
+                    <NativeOpsDemoBlueprint className="w-full" />
+                    <ol className="mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                      {(copy.demo_stages || []).map((stage, index) => (
+                        <li
+                          key={stage}
+                          className="flex items-start gap-3 text-[11px] leading-5 text-white/52"
+                        >
+                          <NativeOpsSignalIcon
+                            variant={index}
+                            className="mt-0.5 size-4 shrink-0 text-[#a99cff]"
+                          />
+                          <span>{stage}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
                 </div>
-                <h3 className="mt-4 max-w-xl text-2xl font-semibold tracking-[-0.035em] md:text-4xl">
-                  {copy.empty_title}
-                </h3>
-                <p className="mt-4 max-w-lg text-sm leading-7 text-white/38">
+                <p className="mt-9 text-center text-[10px] tracking-[0.04em] text-white/25">
                   {copy.empty_description}
                 </p>
               </div>

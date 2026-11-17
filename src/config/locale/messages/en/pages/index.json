@@ -57,6 +57,17 @@
           "stage_description": "Judge feasibility first, then define human–AI boundaries, Skills, data, memory, guardrails, and a rollout plan.",
           "empty_title": "Your business blueprint starts here",
           "empty_description": "Describe the goal, current state, and constraints to get a feasibility decision and an actionable AI-native operating model.",
+          "template_demo": "Template preview",
+          "try_template": "Try it",
+          "demo_title": "AI-native content operations blueprint",
+          "demo_summary": "A two-person content team: AI owns research, drafting, and learning; people own direction, fact-checking, and final publication.",
+          "demo_score": "Feasibility 82 / 100",
+          "demo_stages": [
+            "Collect customer interviews, product updates, and market signals",
+            "Generate evidence-backed topics and three content directions",
+            "Editor confirms direction and reviews sensitive information",
+            "Create channel-ready content and capture performance feedback"
+          ],
           "nodes": "nodes",
           "generated": "Blueprint generated",
           "copy": "Copy blueprint",

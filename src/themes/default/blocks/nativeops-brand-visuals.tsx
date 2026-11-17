@@ -286,3 +286,68 @@ export function NativeOpsClosingMark({ className }: VisualProps) {
     </svg>
   );
 }
+
+export function NativeOpsDemoBlueprint({ className }: VisualProps) {
+  return (
+    <svg
+      viewBox="0 0 720 240"
+      className={cn('nativeops-demo-blueprint', className)}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M80 120H210C236 120 236 66 264 66H342C370 66 370 174 398 174H476C504 174 504 120 532 120H640"
+        stroke="rgba(255,255,255,.22)"
+        strokeWidth="1.5"
+        {...lineProps}
+      />
+      <path
+        className="nativeops-demo-trace"
+        d="M80 120H210C236 120 236 66 264 66H342C370 66 370 174 398 174H476C504 174 504 120 532 120H640"
+        stroke="#7cff67"
+        strokeWidth="2"
+        pathLength="1"
+        {...lineProps}
+      />
+      {[
+        { x: 80, y: 120, accent: '#f8f7f4' },
+        { x: 303, y: 66, accent: '#a99cff' },
+        { x: 437, y: 174, accent: '#f8f7f4' },
+        { x: 640, y: 120, accent: '#7cff67' },
+      ].map((node, index) => (
+        <g key={node.x} className="nativeops-demo-node">
+          <rect
+            x={node.x - 34}
+            y={node.y - 34}
+            width="68"
+            height="68"
+            rx="20"
+            fill="#111219"
+            stroke="rgba(255,255,255,.24)"
+            strokeWidth="1"
+            vectorEffect="non-scaling-stroke"
+          />
+          <circle cx={node.x} cy={node.y} r="6" fill={node.accent} />
+          <path
+            d={`M${node.x - 13} ${node.y + 14}H${node.x + 13}`}
+            stroke="rgba(255,255,255,.34)"
+            strokeWidth="1"
+            {...lineProps}
+          />
+          {index === 3 ? (
+            <circle
+              className="nativeops-vector-pulse"
+              cx={node.x}
+              cy={node.y}
+              r="10"
+              fill="none"
+              stroke="#7cff67"
+              strokeWidth="1"
+              vectorEffect="non-scaling-stroke"
+            />
+          ) : null}
+        </g>
+      ))}
+    </svg>
+  );
+}

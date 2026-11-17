@@ -520,7 +520,8 @@ pre {
 .nativeops-hero-mark,
 .nativeops-journey,
 .nativeops-system-map,
-.nativeops-closing-mark {
+.nativeops-closing-mark,
+.nativeops-demo-blueprint {
   overflow: visible;
 }
 
@@ -543,7 +544,8 @@ pre {
 }
 
 .nativeops-journey-trace,
-.nativeops-closing-trace {
+.nativeops-closing-trace,
+.nativeops-demo-trace {
   stroke-dasharray: 0.16 0.84;
   animation: nativeops-trace 5.2s linear infinite;
 }
@@ -713,7 +715,8 @@ pre {
   .nativeops-vector-pulse,
   .nativeops-system-pulse,
   .nativeops-journey-trace,
-  .nativeops-closing-trace {
+  .nativeops-closing-trace,
+  .nativeops-demo-trace {
     animation: none;
   }
 
