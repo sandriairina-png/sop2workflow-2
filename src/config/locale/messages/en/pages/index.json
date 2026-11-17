@@ -68,6 +68,13 @@
             "Editor confirms direction and reviews sensitive information",
             "Create channel-ready content and capture performance feedback"
           ],
+          "demo_decision_title": "How this blueprint passes validation",
+          "demo_decision_summary": "The example shows that AI recommendations do not execute immediately. Human boundaries, risk controls, and success criteria come first.",
+          "demo_decisions": [
+            "Human boundary: the editor confirms direction and has final review of facts and sensitive claims",
+            "Risk guardrail: unsupported claims cannot be published, and disputed information is escalated to a person",
+            "Success criteria: deliver 20 pieces each week while tracking rework and channel feedback"
+          ],
           "nodes": "nodes",
           "generated": "Blueprint generated",
           "copy": "Copy blueprint",

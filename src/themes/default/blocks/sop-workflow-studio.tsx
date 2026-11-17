@@ -90,6 +90,9 @@ type StudioCopy = {
   demo_summary?: string;
   demo_score?: string;
   demo_stages?: string[];
+  demo_decision_title?: string;
+  demo_decision_summary?: string;
+  demo_decisions?: string[];
   nodes?: string;
   generated?: string;
   copy?: string;
@@ -910,15 +913,6 @@ export function SopWorkflowStudio({
                   {value === 'flow' ? copy.preview : copy.setup}
                 </button>
               ))}
-              {!result ? (
-                <button
-                  type="button"
-                  onClick={tryTemplate}
-                  className="rounded-full bg-white px-4 py-2 text-[11px] font-medium text-[#090a0d] transition hover:bg-white/88"
-                >
-                  {copy.try_template || 'Try it'}
-                </button>
-              ) : null}
               <div
                 className={cn(
                   'relative items-center gap-2',
@@ -1003,7 +997,7 @@ export function SopWorkflowStudio({
           </div>
 
           <div className="linearity-product-canvas min-h-[600px] md:min-h-[680px]">
-            {!result ? (
+            {!result && activeTab === 'flow' ? (
               <div className="min-h-[600px] px-5 py-8 md:min-h-[680px] md:px-10 md:py-12">
                 <div className="flex items-center justify-between gap-4">
                   <span className="rounded-full bg-[#a99cff]/10 px-3 py-1.5 text-[10px] font-medium tracking-[0.06em] text-[#c9c1ff]">
@@ -1052,6 +1046,46 @@ export function SopWorkflowStudio({
                   </div>
                 </div>
                 <p className="mt-9 text-center text-[10px] tracking-[0.04em] text-white/25">
+                  {copy.empty_description}
+                </p>
+              </div>
+            ) : !result && activeTab === 'setup' ? (
+              <div className="min-h-[600px] px-5 py-8 md:min-h-[680px] md:px-10 md:py-12">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="rounded-full bg-[#a99cff]/10 px-3 py-1.5 text-[10px] font-medium tracking-[0.06em] text-[#c9c1ff]">
+                    {copy.template_demo || 'Template preview'}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-[#a9f59d]">
+                    <CheckCircle2 className="size-3.5" />
+                    {copy.validated || 'Validated'}
+                  </span>
+                </div>
+                <div className="mx-auto mt-14 max-w-4xl text-center">
+                  <h3 className="text-2xl font-semibold tracking-[-0.035em] text-balance md:text-4xl">
+                    {copy.demo_decision_title ||
+                      'How this blueprint is reviewed'}
+                  </h3>
+                  <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/45">
+                    {copy.demo_decision_summary}
+                  </p>
+                </div>
+                <div className="mx-auto mt-12 grid max-w-5xl gap-4 md:grid-cols-3">
+                  {(copy.demo_decisions || []).map((decision, index) => {
+                    const Icon = [Workflow, ShieldCheck, CheckCircle2][index];
+                    return (
+                      <div
+                        key={decision}
+                        className="rounded-[22px] bg-white/[0.035] p-5 md:p-6"
+                      >
+                        <Icon className="size-5 text-[#a99cff]" />
+                        <p className="mt-5 text-sm leading-7 text-white/58">
+                          {decision}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-12 text-center text-[10px] tracking-[0.04em] text-white/25">
                   {copy.empty_description}
                 </p>
               </div>

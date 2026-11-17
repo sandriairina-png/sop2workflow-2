@@ -553,6 +553,27 @@ test('empty workspace presents a labelled blueprint template with a try action',
   assert.match(studio, /NativeOpsDemoBlueprint/);
 });
 
+test('template preview switches to decisions without duplicating the try action', () => {
+  for (const locale of ['zh', 'en']) {
+    const workspace = json(`./messages/${locale}/pages/index.json`).page
+      .sections.hero.workspace;
+    assert.ok(workspace.demo_decision_title);
+    assert.ok(workspace.demo_decision_summary);
+    assert.equal(workspace.demo_decisions.length, 3);
+  }
+
+  const studio = readFileSync(
+    new URL(
+      '../../themes/default/blocks/sop-workflow-studio.tsx',
+      import.meta.url
+    ),
+    'utf8'
+  );
+  assert.match(studio, /!result && activeTab === 'flow'/);
+  assert.match(studio, /!result && activeTab === 'setup'/);
+  assert.equal(studio.match(/onClick=\{tryTemplate\}/g)?.length, 1);
+});
+
 test('SOP input panel stays transparent behind the animated border', () => {
   const styles = readFileSync(
     new URL('../style/global.css', import.meta.url),
